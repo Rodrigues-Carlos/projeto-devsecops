@@ -1,0 +1,13 @@
+name: "Formativa"
+
+on: 
+  - push
+  - workflow_dispatch
+
+jobs:
+  tarefa:
+    name: Olá, mundo!
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo
+        run: echo "Olá, mundo!"
