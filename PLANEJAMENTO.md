@@ -1,6 +1,4 @@
-# Planejamento do Projeto Hora Marcada
-
-Este arquivo serve como checklist do grupo para acompanhar o que ja foi feito e o que ainda precisa ser implementado no projeto DevSecOps.
+# Planejamento do Projeto
 
 ## 1. Base do projeto
 
@@ -9,7 +7,6 @@ Este arquivo serve como checklist do grupo para acompanhar o que ja foi feito e 
 - [x] Criar pagina HTML inicial
 - [x] Criar estilos basicos da interface
 - [x] Criar navegacao entre telas principais
-- [x] Documentar como rodar o projeto localmente no README
 
 ## 2. Requisitos funcionais
 
