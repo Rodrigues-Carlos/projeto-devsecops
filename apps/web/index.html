@@ -42,40 +42,34 @@
             <span>Hoje</span>
             <strong>Quarta-feira</strong>
           </div>
-          <div class="slot-list">
-            <button type="button" class="slot available">
-              <strong>09:00</strong>
+          <div class="preview-scale">
+            <div>
               <span>Nathan</span>
-            </button>
-            <button type="button" class="slot available">
-              <strong>10:00</strong>
-              <span>Nathan</span>
-            </button>
-            <button type="button" class="slot available">
-              <strong>11:00</strong>
+              <strong>08:00 - 15:00</strong>
+            </div>
+            <div>
               <span>Carlos</span>
-            </button>
-            <button type="button" class="slot busy">
-              <strong>12:00</strong>
-              <span>Carlos</span>
-            </button>
-            <button type="button" class="slot available">
-              <strong>13:00</strong>
+              <strong>11:00 - 18:00</strong>
+            </div>
+            <div>
               <span>Leonardo</span>
-            </button>
-            <button type="button" class="slot available">
-              <strong>14:00</strong>
-              <span>Leonardo</span>
-            </button>
+              <strong>09:00 - 16:00</strong>
+            </div>
           </div>
         </aside>
       </section>
 
       <section id="horarios" class="section">
-        <div class="section-heading">
-          <h2>Horarios disponiveis</h2>
-        </div>
-        <div class="availability-grid" id="availabilityGrid"></div>
+        <details class="availability-panel">
+          <summary>
+            <span>
+              <strong>Horarios disponiveis</strong>
+              <small>Consultar escala por barbeiro</small>
+            </span>
+            <span class="summary-icon" aria-hidden="true">+</span>
+          </summary>
+          <div class="availability-board" id="availabilityBoard"></div>
+        </details>
       </section>
 
       <section id="agendar" class="section split">
@@ -100,19 +94,6 @@
             </select>
           </label>
           <label>
-            Horario
-            <select name="horario">
-              <option>09:00</option>
-              <option>10:00</option>
-              <option>11:00</option>
-              <option>13:00</option>
-              <option>14:00</option>
-              <option>15:00</option>
-              <option>17:00</option>
-              <option>18:00</option>
-            </select>
-          </label>
-          <label>
             Barbeiro
             <select name="barbeiro">
               <option>Nathan</option>
@@ -120,6 +101,10 @@
               <option>Leonardo</option>
               <option>Qualquer profissional disponivel</option>
             </select>
+          </label>
+          <label>
+            Horario
+            <select name="horario"></select>
           </label>
           <button class="button primary" type="button">Reservar</button>
         </form>
@@ -130,12 +115,7 @@
           <h2>Meus agendamentos</h2>
         </div>
         <div class="appointments">
-          <article>
-            <span>15:00</span>
-            <strong>Corte + barba</strong>
-            <p>Agendamento confirmado para hoje.</p>
-            <button type="button">Cancelar</button>
-          </article>
+          <p class="empty-state">Nenhum agendamento realizado.</p>
         </div>
       </section>
 
@@ -149,15 +129,15 @@
 
         <div class="admin-panel">
           <div>
-            <span class="metric">12</span>
+            <span class="metric">0</span>
             <p>Agendamentos da semana</p>
           </div>
           <div>
-            <span class="metric">5</span>
+            <span class="metric">24</span>
             <p>Horarios livres hoje</p>
           </div>
           <div>
-            <span class="metric">1</span>
+            <span class="metric">0</span>
             <p>Cancelamento pendente</p>
           </div>
         </div>

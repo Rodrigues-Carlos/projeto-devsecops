@@ -196,10 +196,69 @@ h2 {
   color: var(--ink);
 }
 
-.slot-list,
-.availability-grid {
+.preview-scale {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.preview-scale div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 54px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.preview-scale span {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.preview-scale strong {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.availability-board {
+  display: grid;
+  gap: 18px;
+  padding: 0 22px 22px;
+}
+
+.barber-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 150px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.barber-name {
+  display: grid;
+  align-content: center;
+  min-height: 58px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(31, 43, 39, 0.08);
+}
+
+.barber-name strong {
+  color: var(--ink);
+}
+
+.barber-name span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.slot-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
   gap: 12px;
 }
 
@@ -211,7 +270,6 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: white;
-  cursor: pointer;
   font-weight: 700;
 }
 
@@ -226,13 +284,12 @@ h2 {
 }
 
 .slot.available:hover {
-  border-color: var(--primary);
+  border-color: var(--line);
 }
 
 .slot.busy {
   color: #6d7376;
   background: var(--busy);
-  cursor: not-allowed;
 }
 
 .section {
@@ -246,6 +303,62 @@ h2 {
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 24px;
+}
+
+.availability-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.availability-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 76px;
+  padding: 18px 22px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.availability-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.availability-panel summary strong,
+.availability-panel summary small {
+  display: block;
+}
+
+.availability-panel summary strong {
+  color: var(--ink);
+  font-size: 1.25rem;
+}
+
+.availability-panel summary small {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.summary-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.availability-panel[open] .summary-icon {
+  transform: rotate(45deg);
 }
 
 .split {
@@ -292,6 +405,16 @@ select {
 
 .appointments article {
   padding: 20px;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow);
 }
 
 .appointments span {
@@ -371,6 +494,10 @@ select {
   }
 
   .admin-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .barber-row {
     grid-template-columns: 1fr;
   }
 }
