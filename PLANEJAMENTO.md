@@ -4,12 +4,12 @@ Este arquivo serve como checklist do grupo para acompanhar o que ja foi feito e 
 
 ## 1. Base do projeto
 
-- [ ] Definir stack principal da aplicacao web
-- [ ] Criar estrutura inicial do projeto
-- [ ] Criar pagina HTML inicial
-- [ ] Criar estilos basicos da interface
-- [ ] Criar navegacao entre telas principais
-- [ ] Documentar como rodar o projeto localmente no README
+- [x] Definir stack principal da aplicacao web
+- [x] Criar estrutura inicial do projeto
+- [x] Criar pagina HTML inicial
+- [x] Criar estilos basicos da interface
+- [x] Criar navegacao entre telas principais
+- [x] Documentar como rodar o projeto localmente no README
 
 ## 2. Requisitos funcionais
 
@@ -36,7 +36,7 @@ Este arquivo serve como checklist do grupo para acompanhar o que ja foi feito e 
 
 ## 4. Arquitetura de microsservicos
 
-- [ ] Criar aplicacao web
+- [x] Criar aplicacao web
 - [ ] Criar API Gateway
 - [ ] Criar servico de autenticacao
 - [ ] Criar servico de agendamento
@@ -104,4 +104,3 @@ Este arquivo serve como checklist do grupo para acompanhar o que ja foi feito e 
 - [ ] Garantir commits de todos os integrantes
 - [ ] Entregar URL do repositorio
 - [ ] Entregar documento final
-

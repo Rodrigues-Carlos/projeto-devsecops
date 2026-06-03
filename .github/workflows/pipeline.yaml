@@ -1,13 +1,13 @@
 name: "Formativa"
 
-on: 
+on:
   - push
   - workflow_dispatch
 
 jobs:
   tarefa:
-    name: Olá, mundo!
+    name: Ola, mundo!
     runs-on: self-hosted
     steps:
       - name: Echo
-        run: echo "Olá, mundo!"
+        run: echo "Ola, mundo!"

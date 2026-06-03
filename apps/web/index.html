@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hora Marcada</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Hora Marcada">
+        <span class="brand-mark">HM</span>
+        <span>Hora Marcada</span>
+      </a>
+
+      <nav class="nav" aria-label="Navegacao principal">
+        <a href="#horarios">Horarios</a>
+        <a href="#agendar">Agendar</a>
+        <a href="#meus-agendamentos">Meus agendamentos</a>
+        <a href="#admin">Admin</a>
+      </nav>
+
+      <a class="login-link" href="#login">Entrar</a>
+    </header>
+
+    <main>
+      <section id="inicio" class="hero">
+        <div class="hero-content">
+          <p class="eyebrow">Barbearia organizada, cliente no horario</p>
+          <h1>Agendamento online para barbearias e pequenos estabelecimentos</h1>
+          <p class="hero-copy">
+            Clientes encontram horarios disponiveis, fazem reservas e acompanham seus agendamentos. Administradores gerenciam a agenda em um painel simples.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#agendar">Agendar horario</a>
+            <a class="button secondary" href="#admin">Ver painel</a>
+          </div>
+        </div>
+
+        <aside class="schedule-preview" aria-label="Previa de horarios">
+          <div class="preview-header">
+            <span>Hoje</span>
+            <strong>Quarta-feira</strong>
+          </div>
+          <div class="slot-list">
+            <button type="button" class="slot available">
+              <strong>09:00</strong>
+              <span>Nathan</span>
+            </button>
+            <button type="button" class="slot available">
+              <strong>10:00</strong>
+              <span>Nathan</span>
+            </button>
+            <button type="button" class="slot available">
+              <strong>11:00</strong>
+              <span>Carlos</span>
+            </button>
+            <button type="button" class="slot busy">
+              <strong>12:00</strong>
+              <span>Carlos</span>
+            </button>
+            <button type="button" class="slot available">
+              <strong>13:00</strong>
+              <span>Leonardo</span>
+            </button>
+            <button type="button" class="slot available">
+              <strong>14:00</strong>
+              <span>Leonardo</span>
+            </button>
+          </div>
+        </aside>
+      </section>
+
+      <section id="horarios" class="section">
+        <div class="section-heading">
+          <h2>Horarios disponiveis</h2>
+        </div>
+        <div class="availability-grid" id="availabilityGrid"></div>
+      </section>
+
+      <section id="agendar" class="section split">
+        <div>
+          <h2>Realizar agendamento</h2>
+          <p>
+            Esta primeira versao simula o fluxo de escolha de servico, data e horario. Depois ela sera conectada ao servico de agendamentos.
+          </p>
+        </div>
+
+        <form class="form-panel">
+          <label>
+            Nome
+            <input type="text" name="nome" placeholder="Seu nome">
+          </label>
+          <label>
+            Servico
+            <select name="servico">
+              <option>Corte de cabelo</option>
+              <option>Barba</option>
+              <option>Corte + barba</option>
+            </select>
+          </label>
+          <label>
+            Horario
+            <select name="horario">
+              <option>09:00</option>
+              <option>10:00</option>
+              <option>11:00</option>
+              <option>13:00</option>
+              <option>14:00</option>
+              <option>15:00</option>
+              <option>17:00</option>
+              <option>18:00</option>
+            </select>
+          </label>
+          <label>
+            Barbeiro
+            <select name="barbeiro">
+              <option>Nathan</option>
+              <option>Carlos</option>
+              <option>Leonardo</option>
+              <option>Qualquer profissional disponivel</option>
+            </select>
+          </label>
+          <button class="button primary" type="button">Reservar</button>
+        </form>
+      </section>
+
+      <section id="meus-agendamentos" class="section">
+        <div class="section-heading">
+          <h2>Meus agendamentos</h2>
+        </div>
+        <div class="appointments">
+          <article>
+            <span>15:00</span>
+            <strong>Corte + barba</strong>
+            <p>Agendamento confirmado para hoje.</p>
+            <button type="button">Cancelar</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="admin" class="section split">
+        <div>
+          <h2>Painel administrativo</h2>
+          <p>
+            Area reservada para gerenciar horarios, acompanhar reservas e organizar a agenda do estabelecimento.
+          </p>
+        </div>
+
+        <div class="admin-panel">
+          <div>
+            <span class="metric">12</span>
+            <p>Agendamentos da semana</p>
+          </div>
+          <div>
+            <span class="metric">5</span>
+            <p>Horarios livres hoje</p>
+          </div>
+          <div>
+            <span class="metric">1</span>
+            <p>Cancelamento pendente</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="login" class="section split">
+        <div>
+          <h2>Acesso de usuarios</h2>
+          <p>
+            Login e cadastro serao ligados ao servico de autenticacao, com hash de senhas, JWT e controle de perfis.
+          </p>
+        </div>
+
+        <form class="form-panel">
+          <label>
+            E-mail
+            <input type="email" name="email" placeholder="cliente@email.com">
+          </label>
+          <label>
+            Senha
+            <input type="password" name="senha" placeholder="Senha">
+          </label>
+          <button class="button primary" type="button">Entrar</button>
+          <button class="button secondary" type="button">Criar conta</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
