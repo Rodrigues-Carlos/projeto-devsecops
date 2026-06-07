@@ -1,0 +1,15 @@
+# Configuracao nao sensivel (ConfigMap). Segredos ficam em 02-secrets.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hora-marcada-config
+  namespace: hora-marcada
+data:
+  LOG_LEVEL: "INFO"
+  AUTH_SERVICE_URL: "http://auth-service:8000"
+  SCHEDULING_SERVICE_URL: "http://scheduling-service:8000"
+  ADMIN_EMAIL: "admin@horamarcada.com"
+  POSTGRES_AUTH_USER: "auth"
+  POSTGRES_AUTH_DB: "usersdb"
+  POSTGRES_SCHED_USER: "sched"
+  POSTGRES_SCHED_DB: "appointmentsdb"
