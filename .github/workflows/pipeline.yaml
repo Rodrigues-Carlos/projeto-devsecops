@@ -105,7 +105,7 @@ jobs:
           done
         continue-on-error: true
       - name: Trivy (filesystem - dependencias e misconfig)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.30.0
         with:
           scan-type: fs
           scan-ref: .
@@ -113,7 +113,7 @@ jobs:
           exit-code: "0"
       - name: FOSSA (analise de licencas e composicao)
         if: env.FOSSA_API_KEY != ''
-        uses: fossas/fossa-action@v3
+        uses: fossas/fossa-action@v1.4.0
         with:
           api-key: ${{ env.FOSSA_API_KEY }}
 
@@ -167,7 +167,7 @@ jobs:
             ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:latest
             ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:${{ github.sha }}
       - name: Trivy (scan da imagem publicada)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.30.0
         with:
           image-ref: ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:${{ github.sha }}
           severity: HIGH,CRITICAL
