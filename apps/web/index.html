@@ -17,11 +17,15 @@
         <a href="#horarios">Horarios</a>
         <a href="#agendar">Agendar</a>
         <a href="#meus-agendamentos">Meus agendamentos</a>
-        <a href="#admin">Admin</a>
+        <a href="#admin" data-role="admin" hidden>Admin</a>
       </nav>
 
-      <a class="login-link" href="#login">Entrar</a>
+      <div class="auth-area" id="authArea">
+        <a class="login-link" href="#login">Entrar</a>
+      </div>
     </header>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
     <main>
       <section id="inicio" class="hero">
@@ -32,138 +36,129 @@
           </p>
           <div class="hero-actions">
             <a class="button primary" href="#agendar">Agendar horario</a>
-            <a class="button secondary" href="#admin">Ver painel</a>
+            <a class="button secondary" href="#horarios">Ver horarios</a>
           </div>
         </div>
 
         <aside class="schedule-preview" aria-label="Previa de horarios">
           <div class="preview-header">
-            <span>Hoje</span>
-            <strong>Quarta-feira</strong>
+            <span>Agenda</span>
+            <strong>Hora Marcada</strong>
           </div>
           <div class="preview-scale">
-            <div>
-              <span>Nathan</span>
-              <strong>08:00 - 15:00</strong>
-            </div>
-            <div>
-              <span>Carlos</span>
-              <strong>11:00 - 18:00</strong>
-            </div>
-            <div>
-              <span>Leonardo</span>
-              <strong>09:00 - 16:00</strong>
-            </div>
+            <div><span>Nathan</span><strong>09:00 - 16:00</strong></div>
+            <div><span>Carlos</span><strong>09:00 - 16:00</strong></div>
+            <div><span>Leonardo</span><strong>09:00 - 16:00</strong></div>
           </div>
         </aside>
       </section>
 
+      <!-- RF03 - Visualizar horarios disponiveis -->
       <section id="horarios" class="section">
-        <details class="availability-panel">
-          <summary>
-            <span>
-              <strong>Horarios disponiveis</strong>
-              <small>Consultar escala por barbeiro</small>
-            </span>
-            <span class="summary-icon" aria-hidden="true">+</span>
-          </summary>
-          <div class="availability-board" id="availabilityBoard"></div>
-        </details>
+        <div class="section-heading">
+          <h2>Horarios disponiveis</h2>
+          <button class="button ghost" type="button" id="refreshSlots">Atualizar</button>
+        </div>
+        <div class="availability-board" id="availabilityBoard">
+          <p class="empty-state">Carregando horarios...</p>
+        </div>
       </section>
 
+      <!-- RF04 - Realizar agendamento -->
       <section id="agendar" class="section split">
         <div>
           <h2>Realizar agendamento</h2>
-          <p>
-            Esta primeira versao simula o fluxo de escolha de servico, data e horario. Depois ela sera conectada ao servico de agendamentos.
-          </p>
+          <p>Escolha o profissional, o servico e um horario disponivel. E necessario estar autenticado.</p>
         </div>
 
-        <form class="form-panel">
+        <form class="form-panel" id="bookingForm">
           <label>
-            Nome
-            <input type="text" name="nome" placeholder="Seu nome">
+            Barbeiro
+            <select name="barbeiro" id="bookBarber"></select>
           </label>
           <label>
             Servico
-            <select name="servico">
+            <select name="servico" id="bookService">
               <option>Corte de cabelo</option>
               <option>Barba</option>
               <option>Corte + barba</option>
             </select>
           </label>
           <label>
-            Barbeiro
-            <select name="barbeiro">
-              <option>Nathan</option>
-              <option>Carlos</option>
-              <option>Leonardo</option>
-              <option>Qualquer profissional disponivel</option>
-            </select>
-          </label>
-          <label>
             Horario
-            <select name="horario"></select>
+            <select name="horario" id="bookSlot"></select>
           </label>
-          <button class="button primary" type="button">Reservar</button>
+          <button class="button primary" type="submit">Reservar</button>
         </form>
       </section>
 
+      <!-- RF05 - Cancelar agendamento / lista do cliente -->
       <section id="meus-agendamentos" class="section">
         <div class="section-heading">
           <h2>Meus agendamentos</h2>
         </div>
-        <div class="appointments">
-          <p class="empty-state">Nenhum agendamento realizado.</p>
+        <div class="appointments" id="myAppointments">
+          <p class="empty-state">Entre na sua conta para ver seus agendamentos.</p>
         </div>
       </section>
 
-      <section id="admin" class="section split">
-        <div>
+      <!-- RF06/RF07/RF08/RF09/RF10 - Painel administrativo (somente admin) -->
+      <section id="admin" class="section" data-role="admin" hidden>
+        <div class="section-heading">
           <h2>Painel administrativo</h2>
-          <p>
-            Area reservada para gerenciar horarios, acompanhar reservas e organizar a agenda do estabelecimento.
-          </p>
         </div>
 
         <div class="admin-panel">
-          <div>
-            <span class="metric">0</span>
-            <p>Agendamentos da semana</p>
+          <div><span class="metric" id="metricAppointments">0</span><p>Agendamentos ativos</p></div>
+          <div><span class="metric" id="metricSlots">0</span><p>Horarios livres</p></div>
+          <div><span class="metric" id="metricCancelled">0</span><p>Cancelados</p></div>
+        </div>
+
+        <div class="admin-grid">
+          <div class="card">
+            <h3>Definir horario (RF07)</h3>
+            <form class="form-panel" id="slotForm">
+              <label>Barbeiro<input type="text" id="slotBarber" placeholder="Nome do barbeiro" required></label>
+              <label>Data<input type="date" id="slotDate" required></label>
+              <label>Horario<input type="time" id="slotTime" required></label>
+              <button class="button primary" type="submit">Criar horario</button>
+            </form>
           </div>
-          <div>
-            <span class="metric">24</span>
-            <p>Horarios livres hoje</p>
+
+          <div class="card">
+            <h3>Horarios cadastrados (RF08 / RF09)</h3>
+            <div class="admin-list" id="adminSlots"><p class="empty-state">Carregando...</p></div>
           </div>
-          <div>
-            <span class="metric">0</span>
-            <p>Cancelamento pendente</p>
-          </div>
+        </div>
+
+        <div class="card">
+          <h3>Todos os agendamentos (RF10)</h3>
+          <div class="admin-list" id="adminAppointments"><p class="empty-state">Carregando...</p></div>
         </div>
       </section>
 
+      <!-- RF01 / RF02 - Cadastro e autenticacao -->
       <section id="login" class="section split">
-        <div>
-          <h2>Acesso de usuarios</h2>
-          <p>
-            Login e cadastro serao ligados ao servico de autenticacao, com hash de senhas, JWT e controle de perfis.
-          </p>
-        </div>
+        <form class="form-panel" id="loginForm">
+          <h2>Entrar</h2>
+          <label>E-mail<input type="email" id="loginEmail" placeholder="cliente@email.com" required></label>
+          <label>Senha<input type="password" id="loginPassword" placeholder="Senha" required></label>
+          <button class="button primary" type="submit">Entrar</button>
+        </form>
 
-        <form class="form-panel">
-          <label>
-            E-mail
-            <input type="email" name="email" placeholder="cliente@email.com">
-          </label>
-          <label>
-            Senha
-            <input type="password" name="senha" placeholder="Senha">
-          </label>
-          <button class="button primary" type="button">Entrar</button>
-          <button class="button secondary" type="button">Criar conta</button>
+        <form class="form-panel" id="registerForm">
+          <h2>Criar conta</h2>
+          <label>Nome<input type="text" id="regName" placeholder="Seu nome" required minlength="2"></label>
+          <label>E-mail<input type="email" id="regEmail" placeholder="cliente@email.com" required></label>
+          <label>Senha<input type="password" id="regPassword" placeholder="Minimo 8 caracteres" required minlength="8"></label>
+          <button class="button secondary" type="submit">Cadastrar</button>
         </form>
       </section>
     </main>
+
+    <footer class="footer">
+      <p>Hora Marcada - Projeto DevSecOps (PUC-PR). Arquitetura de microsservicos com API Gateway.</p>
+    </footer>
 
     <script src="./app.js"></script>
   </body>
