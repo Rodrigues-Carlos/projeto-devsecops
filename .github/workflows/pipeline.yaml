@@ -105,12 +105,10 @@ jobs:
           done
         continue-on-error: true
       - name: Trivy (filesystem - dependencias e misconfig)
-        uses: aquasecurity/trivy-action@v0.30.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: HIGH,CRITICAL
-          exit-code: "0"
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+          trivy fs --severity HIGH,CRITICAL --exit-code 0 --no-progress .
+        continue-on-error: true
       - name: FOSSA (analise de licencas e composicao)
         if: env.FOSSA_API_KEY != ''
         uses: fossas/fossa-action@v1.4.0
@@ -167,11 +165,9 @@ jobs:
             ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:latest
             ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:${{ github.sha }}
       - name: Trivy (scan da imagem publicada)
-        uses: aquasecurity/trivy-action@v0.30.0
-        with:
-          image-ref: ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:${{ github.sha }}
-          severity: HIGH,CRITICAL
-          exit-code: "0"
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+          trivy image --severity HIGH,CRITICAL --exit-code 0 --no-progress ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:${{ github.sha }}
         continue-on-error: true
 
   # ---------------- CD: Implantacao Continua --------------------
