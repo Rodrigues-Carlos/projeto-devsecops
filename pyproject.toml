@@ -1,0 +1,14 @@
+# Configuracao de ferramentas Python (lint). Compartilhada pelos microsservicos.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+# B008/B904: padroes idiomaticos do FastAPI (Depends/Header em default, raise em except)
+# E501: comprimento de linha tratado pelo formatador
+ignore = ["B008", "B904", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Nos conftest.py as variaveis de ambiente sao definidas ANTES de importar o app.
+"**/conftest.py" = ["E402", "I001"]
