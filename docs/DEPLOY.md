@@ -1,9 +1,46 @@
-# Guia de Implantacao (minikube + runner self-hosted)
+# Guia de Implantacao (microk8s ou minikube + runner self-hosted)
 
-Este guia descreve a implantacao continua do **Hora Marcada** na VM Debian 12
-usando **minikube** e um **runner self-hosted** do GitHub Actions.
+Este guia descreve a implantacao continua do **Hora Marcada** na VM Debian 12.
+A VM da disciplina ja vem com **Docker**, **microk8s** e o **runner self-hosted**
+do GitHub Actions. Use a Secao A (microk8s) para essa VM; a Secao B (minikube)
+e uma alternativa para outros ambientes.
 
-## 1. Pre-requisitos na VM Debian
+## A. Implantacao no microk8s (VM da disciplina)
+
+```bash
+# 1) Permitir microk8s/docker sem sudo (uma vez; depois faca logout/login)
+sudo usermod -a -G microk8s "$USER"
+sudo usermod -a -G docker "$USER"
+newgrp microk8s
+
+# 2) Clonar o repositorio (se ainda nao fez)
+git clone https://github.com/LeonardoGehr/projeto-devsecops
+cd projeto-devsecops
+
+# 3) Subir tudo (addons + build + import das imagens + apply + rollout)
+bash scripts/deploy-microk8s.sh
+
+# 4) Acessar o app (deixe rodando em outro terminal) e abra http://localhost:8080
+microk8s kubectl -n hora-marcada port-forward svc/web 8080:80
+
+# 5) Criptografia de Secrets em repouso (item de seguranca de infra)
+bash k8s/encryption/enable-encryption-microk8s.sh
+```
+
+Verificacoes para a apresentacao:
+
+```bash
+microk8s kubectl -n hora-marcada get pods,svc,deploy,statefulset,hpa
+microk8s kubectl -n hora-marcada get networkpolicies   # Calico (CNI padrao do microk8s) aplica as policies
+```
+
+O **runner self-hosted** ja instalado executa o job `deploy` da pipeline
+(`scripts/deploy-microk8s.sh`) a cada push na branch `main`. Garanta que o
+usuario do runner esteja nos grupos `microk8s` e `docker`.
+
+## B. Alternativa: minikube
+
+### 1. Pre-requisitos na VM Debian
 
 ```bash
 sudo apt-get update

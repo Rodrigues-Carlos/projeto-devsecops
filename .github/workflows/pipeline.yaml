@@ -172,13 +172,13 @@ jobs:
 
   # ---------------- CD: Implantacao Continua --------------------
   deploy:
-    name: CD - Implantacao continua (minikube self-hosted)
+    name: CD - Implantacao continua (microk8s self-hosted)
     needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - name: Implantar no minikube
+      - name: Implantar no microk8s
         run: |
           chmod +x scripts/*.sh
-          ./scripts/deploy-minikube.sh
+          ./scripts/deploy-microk8s.sh
