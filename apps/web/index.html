@@ -79,14 +79,14 @@
           </p>
         </div>
 
-        <form class="form-panel">
+        <form class="form-panel" id="appointmentForm">
           <label>
             Nome
-            <input type="text" name="nome" placeholder="Seu nome">
+            <input type="text" name="nome" placeholder="Seu nome" required>
           </label>
           <label>
             Servico
-            <select name="servico">
+            <select name="servico" required>
               <option>Corte de cabelo</option>
               <option>Barba</option>
               <option>Corte + barba</option>
@@ -94,7 +94,7 @@
           </label>
           <label>
             Barbeiro
-            <select name="barbeiro">
+            <select name="barbeiro" required>
               <option>Nathan</option>
               <option>Carlos</option>
               <option>Leonardo</option>
@@ -102,10 +102,15 @@
             </select>
           </label>
           <label>
-            Horario
-            <select name="horario"></select>
+            Data
+            <input type="date" name="data" required>
           </label>
-          <button class="button primary" type="button">Reservar</button>
+          <label>
+            Horario
+            <select name="horario" required></select>
+          </label>
+          <button class="button primary" type="submit">Reservar</button>
+          <p class="form-message" id="appointmentMessage" role="status" aria-live="polite"></p>
         </form>
       </section>
 
@@ -113,7 +118,7 @@
         <div class="section-heading">
           <h2>Meus agendamentos</h2>
         </div>
-        <div class="appointments">
+        <div class="appointments" id="appointmentsList" aria-live="polite">
           <p class="empty-state">Nenhum agendamento realizado.</p>
         </div>
       </section>

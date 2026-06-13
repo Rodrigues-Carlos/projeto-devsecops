@@ -13,7 +13,7 @@
 - [ ] RF01 - Cadastro de usuario
 - [ ] RF02 - Autenticacao de usuario
 - [ ] RF03 - Visualizar horarios disponiveis
-- [ ] RF04 - Realizar agendamento
+- [x] RF04 - Realizar agendamento no frontend com persistencia local
 - [ ] RF05 - Cancelar agendamento
 - [ ] RF06 - Painel administrativo
 - [ ] RF07 - Definir horarios

@@ -379,6 +379,20 @@ h2 {
   padding: 22px;
 }
 
+.form-message {
+  min-height: 24px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.form-message.success {
+  color: var(--primary-dark);
+}
+
+.form-message.error {
+  color: var(--accent);
+}
+
 label {
   display: grid;
   gap: 7px;

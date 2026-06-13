@@ -11,6 +11,8 @@ Sistema web de agendamento online para barbearias e pequenos estabelecimentos, d
 
 Nesta primeira etapa, a aplicacao web e estatica e nao exige Docker, XAMPP, banco de dados ou instalacao de dependencias.
 
+Os agendamentos realizados sao armazenados localmente no navegador. A integracao com API e banco de dados sera feita em uma etapa posterior.
+
 ## Como abrir localmente
 
 Abra o arquivo abaixo no navegador:
