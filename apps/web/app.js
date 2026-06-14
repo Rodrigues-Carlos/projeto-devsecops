@@ -114,6 +114,7 @@ function renderAuth() {
     el.hidden = !isAdmin;
   });
 
+  loadSlots();
   loadMyAppointments();
   if (isAdmin) loadAdmin();
 }
@@ -162,10 +163,19 @@ let availableSlots = [];
 
 async function loadSlots() {
   const board = $("#availabilityBoard");
+  if (!store.isLogged) {
+    availableSlots = [];
+    board.replaceChildren(emptyState("Faca login para consultar horarios disponiveis."));
+    populateBookingForm();
+    return;
+  }
+
   try {
-    availableSlots = (await api("/scheduling/slots")) || [];
+    availableSlots = (await api("/scheduling/slots", { auth: true })) || [];
   } catch (err) {
+    availableSlots = [];
     board.replaceChildren(emptyState(err.message));
+    populateBookingForm();
     return;
   }
 
@@ -210,6 +220,25 @@ function populateBookingForm() {
   const barberSel = $("#bookBarber");
   const barbers = [...new Set(availableSlots.map((s) => s.barber))].sort();
   barberSel.replaceChildren();
+
+  if (!store.isLogged) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Faca login para agendar";
+    barberSel.append(opt);
+    updateSlotOptions();
+    return;
+  }
+
+  if (barbers.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Nenhum profissional disponivel";
+    barberSel.append(opt);
+    updateSlotOptions();
+    return;
+  }
+
   const any = document.createElement("option");
   any.value = "";
   any.textContent = "Qualquer profissional";
@@ -227,14 +256,24 @@ function updateSlotOptions() {
   const barber = $("#bookBarber").value;
   const slotSel = $("#bookSlot");
   slotSel.replaceChildren();
-  availableSlots
+  const slots = availableSlots
     .filter((s) => !barber || s.barber === barber)
-    .forEach((s) => {
-      const opt = document.createElement("option");
-      opt.value = s.id;
-      opt.textContent = `${s.barber} - ${s.date} ${s.time}`;
-      slotSel.append(opt);
-    });
+  if (slots.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = store.isLogged ? "Nenhum horario disponivel" : "Faca login para ver horarios";
+    opt.disabled = true;
+    opt.selected = true;
+    slotSel.append(opt);
+    return;
+  }
+
+  slots.forEach((s) => {
+    const opt = document.createElement("option");
+    opt.value = s.id;
+    opt.textContent = `${s.barber} - ${s.date} ${s.time}`;
+    slotSel.append(opt);
+  });
 }
 
 $("#bookBarber").addEventListener("change", updateSlotOptions);
