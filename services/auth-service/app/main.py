@@ -233,6 +233,42 @@ def me(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)
     return user
 
 
+@app.patch("/me", response_model=schemas.ProfileUpdateOut)
+def update_me(
+    payload: schemas.UserUpdate,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    user = db.get(models.User, int(claims["sub"]))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado"
+        )
+
+    email_owner = db.execute(
+        select(models.User).where(
+            models.User.email == payload.email,
+            models.User.id != user.id,
+        )
+    ).scalar_one_or_none()
+    if email_owner is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="E-mail ja cadastrado"
+        )
+
+    user.name = payload.name
+    user.email = payload.email
+    user.phone = payload.phone
+    db.commit()
+    db.refresh(user)
+
+    token = security.create_access_token(
+        user.id, user.email, user.role, user.name, user.phone
+    )
+    logger.info("Perfil atualizado: id=%s", user.id)
+    return schemas.ProfileUpdateOut(user=user, access_token=token)
+
+
 @app.get("/users", response_model=list[schemas.UserOut])
 def list_users(_: dict = Depends(require_admin), db: Session = Depends(get_db)):
     """RF06 - Apoio ao painel administrativo (somente admin - RNF10)."""

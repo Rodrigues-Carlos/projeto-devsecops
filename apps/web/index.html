@@ -17,6 +17,7 @@
         <a href="#horarios">Horarios</a>
         <a href="#agendar">Agendar</a>
         <a href="#meus-agendamentos">Meus agendamentos</a>
+        <a href="#perfil" data-auth="logged" hidden>Meu perfil</a>
         <a href="#admin" data-role="admin" hidden>Admin</a>
       </nav>
 
@@ -199,6 +200,20 @@
             <button class="button ghost small" type="button" id="nextAppointmentPage">Proxima</button>
           </div>
         </div>
+      </section>
+
+      <section id="perfil" class="section split" data-auth="logged" hidden>
+        <div>
+          <h2>Meu perfil</h2>
+          <p>Atualize seus dados pessoais. As alteracoes passam a valer imediatamente nos proximos agendamentos.</p>
+        </div>
+
+        <form class="form-panel" id="profileForm">
+          <label>Nome<input type="text" id="profileName" required minlength="2"></label>
+          <label>E-mail<input type="email" id="profileEmail" required></label>
+          <label>WhatsApp<input type="tel" id="profilePhone" required minlength="10"></label>
+          <button class="button primary" type="submit">Salvar perfil</button>
+        </form>
       </section>
 
       <!-- RF01 / RF02 - Cadastro e autenticacao -->

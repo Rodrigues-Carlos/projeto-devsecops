@@ -28,6 +28,73 @@ def test_register_login_me(client):
     assert r.json()["phone"] == "41999999999"
 
 
+def test_user_can_update_own_profile(client):
+    client.post(
+        "/register",
+        json={
+            "name": "Perfil Antigo",
+            "email": "perfil-antigo@example.com",
+            "phone": "41999999991",
+            "password": "senha12345",
+        },
+    )
+    token = client.post(
+        "/login",
+        json={"email": "perfil-antigo@example.com", "password": "senha12345"},
+    ).json()["access_token"]
+
+    response = client.patch(
+        "/me",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "name": "Perfil Novo",
+            "email": "perfil-novo@example.com",
+            "phone": "(41) 98888-7777",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["user"]["name"] == "Perfil Novo"
+    assert response.json()["user"]["email"] == "perfil-novo@example.com"
+    assert response.json()["user"]["phone"] == "41988887777"
+
+    new_token = response.json()["access_token"]
+    current = client.get("/me", headers={"Authorization": f"Bearer {new_token}"})
+    assert current.status_code == 200
+    assert current.json()["name"] == "Perfil Novo"
+
+
+def test_profile_update_rejects_email_from_another_user(client):
+    for name, email, phone in (
+        ("Primeiro", "primeiro@example.com", "41999999992"),
+        ("Segundo", "segundo@example.com", "41999999993"),
+    ):
+        client.post(
+            "/register",
+            json={
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "password": "senha12345",
+            },
+        )
+
+    token = client.post(
+        "/login",
+        json={"email": "primeiro@example.com", "password": "senha12345"},
+    ).json()["access_token"]
+    response = client.patch(
+        "/me",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "name": "Primeiro",
+            "email": "segundo@example.com",
+            "phone": "41999999992",
+        },
+    )
+    assert response.status_code == 409
+
+
 def test_duplicate_email_rejected(client):
     body = {
         "name": "Ana",

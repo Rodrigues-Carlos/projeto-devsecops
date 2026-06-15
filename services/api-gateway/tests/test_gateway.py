@@ -24,6 +24,10 @@ def test_auth_me_requires_token(client):
     assert client.get("/api/auth/me").status_code == 401
 
 
+def test_auth_profile_update_requires_token(client):
+    assert client.patch("/api/auth/me", json={}).status_code == 401
+
+
 def test_password_recovery_routes_are_public(client):
     request = client.post(
         "/api/auth/password-recovery/request",
