@@ -50,7 +50,7 @@ Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `web` | HTML/CSS/JS + nginx | Interface de clientes e administradores |
 | `api-gateway` | Python 3.12 + FastAPI | Ponto unico de entrada, valida JWT, rate limiting, roteamento |
 | `auth-service` | FastAPI + SQLAlchemy | Cadastro, login (JWT), perfis (RF01, RF02) |
-| `scheduling-service` | FastAPI + SQLAlchemy | Horarios e agendamentos (RF03–RF10) |
+| `scheduling-service` | FastAPI + SQLAlchemy | Funcionamento, agenda anual e agendamentos (RF03–RF10) |
 | `users-db` / `appointments-db` | PostgreSQL 16 | Persistencia (instancias independentes) |
 
 ## Requisitos funcionais
@@ -58,6 +58,13 @@ Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 RF01 cadastro · RF02 login · RF03 ver horarios · RF04 agendar · RF05 cancelar ·
 RF06 painel admin · RF07 definir horarios · RF08 editar · RF09 remover ·
 RF10 ver todos os agendamentos.
+
+A agenda exibe tres datas por vez, mas permite navegar e reservar ao longo dos
+proximos 12 meses. O administrador configura abertura, fechamento e intervalo
+por profissional; domingos e horarios fora do funcionamento sao bloqueados.
+As reservas iniciam como pendentes e podem ser confirmadas no painel. Nome,
+e-mail e WhatsApp do cliente ficam associados ao agendamento, e confirmacoes ou
+cancelamentos registram o responsavel e o horario da acao.
 
 ## Requisitos nao funcionais (resumo)
 

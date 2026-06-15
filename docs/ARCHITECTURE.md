@@ -41,13 +41,16 @@ no caminho relativo `/api`. Toda chamada de API passa pelo API Gateway.
 - Adiciona cabecalhos de seguranca.
 
 ### Servico de Autenticacao (`auth-service`)
-- `POST /register` (RF01), `POST /login` (RF02 -> JWT), `GET /me`, `GET /users` (admin).
+- `POST /register` (RF01, incluindo WhatsApp), `POST /login` (RF02 -> JWT),
+  `GET /me`, `GET /users` (admin).
 - Hash de senha com **bcrypt**, tokens **JWT** (HS256), perfis `cliente`/`admin`.
 - Persiste no `users-db`.
 
 ### Servico de Agendamento (`scheduling-service`)
 - Horarios: `GET /slots` (RF03), `POST /slots` (RF07), `PUT /slots/{id}` (RF08),
   `DELETE /slots/{id}` (RF09).
+- Funcionamento: `GET /working-hours` e `POST /working-hours` (admin). A regra
+  gera a agenda dos proximos 12 meses, sem domingos.
 - Agendamentos: `POST /appointments` (RF04), `DELETE /appointments/{id}` (RF05),
   `GET /appointments/me`, `GET /appointments` (RF10, admin).
 - Valida o JWT localmente (defesa em profundidade) e persiste no `appointments-db`.
@@ -68,6 +71,11 @@ implantadas como StatefulSets com volume persistente.
 | POST | `/api/scheduling/slots` | scheduling | RF07 |
 | PUT | `/api/scheduling/slots/{id}` | scheduling | RF08 |
 | DELETE | `/api/scheduling/slots/{id}` | scheduling | RF09 |
+| GET | `/api/scheduling/working-hours` | scheduling | RF07 |
+| POST | `/api/scheduling/working-hours` | scheduling | RF07 |
+| PUT | `/api/scheduling/admin/appointments/{id}/confirm` | scheduling | RF10 |
+| DELETE | `/api/scheduling/appointments/{id}` | scheduling | RF05 |
+| DELETE | `/api/scheduling/admin/appointments/{id}` | scheduling | RF10 |
 | GET | `/api/scheduling/appointments` | scheduling | RF10 |
 
 ## Decisoes de projeto
