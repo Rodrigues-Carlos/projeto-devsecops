@@ -130,6 +130,18 @@ async def proxy_login(request: Request):
     return await _proxy(request, settings.auth_service_url, "login")
 
 
+@app.post("/api/auth/password-recovery/request")
+@limiter.limit(settings.login_rate_limit)
+async def proxy_password_recovery_request(request: Request):
+    return await _proxy(request, settings.auth_service_url, "password-recovery/request")
+
+
+@app.post("/api/auth/password-recovery/reset")
+@limiter.limit(settings.login_rate_limit)
+async def proxy_password_recovery_reset(request: Request):
+    return await _proxy(request, settings.auth_service_url, "password-recovery/reset")
+
+
 @app.api_route("/api/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @limiter.limit(settings.rate_limit)
 async def proxy_auth(request: Request, path: str):

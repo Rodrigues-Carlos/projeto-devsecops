@@ -14,6 +14,7 @@ os.environ["JWT_SECRET"] = "test-secret"
 os.environ["SEED_ADMIN"] = "true"
 os.environ["ADMIN_EMAIL"] = "admin@example.com"
 os.environ["ADMIN_PASSWORD"] = "Admin@12345"
+os.environ["EXPOSE_PASSWORD_RESET_TOKEN"] = "true"
 
 from fastapi.testclient import TestClient  # noqa: E402
 

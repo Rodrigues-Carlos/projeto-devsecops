@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-only-change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+    password_reset_expire_minutes: int = 15
+    expose_password_reset_token: bool = False
 
     # Observabilidade (RNF07)
     log_level: str = "INFO"

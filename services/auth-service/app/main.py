@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -24,6 +24,18 @@ from .logging_config import configure_logging
 
 settings = get_settings()
 logger = configure_logging(settings.log_level)
+
+
+def _migrate_database() -> None:
+    """Adiciona campos novos sem apagar os usuarios existentes."""
+    columns = {
+        column["name"] for column in inspect(engine).get_columns("users")
+    } if inspect(engine).has_table("users") else set()
+    if columns and "phone" not in columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''")
+            )
 
 
 def _seed_admin() -> None:
@@ -37,6 +49,7 @@ def _seed_admin() -> None:
             admin = models.User(
                 name=settings.admin_name,
                 email=settings.admin_email,
+                phone="",
                 password_hash=security.hash_password(settings.admin_password),
                 role="admin",
             )
@@ -50,6 +63,7 @@ def _seed_admin() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _migrate_database()
     if settings.seed_admin:
         _seed_admin()
     logger.info("Auth-service iniciado")
@@ -130,6 +144,7 @@ def register(payload: schemas.UserRegister, db: Session = Depends(get_db)):
     user = models.User(
         name=payload.name,
         email=payload.email,
+        phone=payload.phone,
         password_hash=security.hash_password(payload.password),
         role="cliente",
     )
@@ -154,9 +169,60 @@ def login(payload: schemas.UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais invalidas"
         )
 
-    token = security.create_access_token(user.id, user.email, user.role)
+    token = security.create_access_token(
+        user.id, user.email, user.role, user.name, user.phone
+    )
     logger.info("Autenticacao bem-sucedida: id=%s role=%s", user.id, user.role)
     return schemas.TokenOut(access_token=token, role=user.role, name=user.name)
+
+
+@app.post(
+    "/password-recovery/request",
+    response_model=schemas.PasswordRecoveryResponse,
+)
+def request_password_recovery(
+    payload: schemas.PasswordRecoveryRequest, db: Session = Depends(get_db)
+):
+    """Gera um token curto sem revelar se o e-mail esta cadastrado."""
+    message = (
+        "Se o e-mail estiver cadastrado, as instrucoes de recuperacao foram geradas."
+    )
+    user = db.execute(
+        select(models.User).where(models.User.email == payload.email)
+    ).scalar_one_or_none()
+    if user is None:
+        logger.info("Recuperacao solicitada para e-mail nao cadastrado")
+        return schemas.PasswordRecoveryResponse(message=message)
+
+    token = security.create_password_reset_token(
+        user.id, user.email, user.password_hash
+    )
+    logger.info("Token de recuperacao gerado para usuario id=%s", user.id)
+    return schemas.PasswordRecoveryResponse(
+        message=message,
+        reset_token=token if settings.expose_password_reset_token else None,
+    )
+
+
+@app.post("/password-recovery/reset", response_model=schemas.MessageOut)
+def reset_password(payload: schemas.PasswordReset, db: Session = Depends(get_db)):
+    """Troca a senha e invalida automaticamente o token utilizado."""
+    try:
+        unverified = security.decode_token(payload.token)
+        user = db.get(models.User, int(unverified["sub"]))
+        if user is None or user.email != unverified.get("email"):
+            raise ValueError("Usuario do token nao encontrado")
+        security.validate_password_reset_token(payload.token, user.password_hash)
+    except Exception:  # noqa: BLE001 - toda falha produz a mesma resposta
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token de recuperacao invalido ou expirado",
+        )
+
+    user.password_hash = security.hash_password(payload.new_password)
+    db.commit()
+    logger.info("Senha redefinida para usuario id=%s", user.id)
+    return schemas.MessageOut(message="Senha redefinida com sucesso")
 
 
 @app.get("/me", response_model=schemas.UserOut)
