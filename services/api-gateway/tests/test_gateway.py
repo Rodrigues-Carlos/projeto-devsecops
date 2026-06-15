@@ -22,3 +22,16 @@ def test_invalid_token_rejected(client):
 
 def test_auth_me_requires_token(client):
     assert client.get("/api/auth/me").status_code == 401
+
+
+def test_password_recovery_routes_are_public(client):
+    request = client.post(
+        "/api/auth/password-recovery/request",
+        json={"email": "cliente@example.com"},
+    )
+    reset = client.post(
+        "/api/auth/password-recovery/reset",
+        json={"token": "token", "new_password": "nova-senha-123"},
+    )
+    assert request.status_code == 502
+    assert reset.status_code == 502
