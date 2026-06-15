@@ -23,6 +23,16 @@
 - [x] RF08 - Editar horarios
 - [x] RF09 - Remover horarios
 - [x] RF10 - Visualizar agendamentos
+- [x] Configurar horario de funcionamento por profissional
+- [x] Gerar agenda para os proximos 12 meses, exceto domingos
+- [x] Navegar pela agenda em janelas de 3 dias
+- [x] Adicionar filtros e paginacao ao painel administrativo
+- [x] Permitir cancelamento administrativo de agendamentos
+- [x] Permitir exclusao definitiva de agendamentos pelo administrador
+- [x] Cadastrar WhatsApp do cliente
+- [x] Confirmar agendamentos pelo painel administrativo
+- [x] Registrar quem confirmou ou cancelou o agendamento
+- [x] Cancelar agendamento diretamente pelo horario ocupado
 
 ## 3. Testes
 
@@ -31,6 +41,14 @@
 - [x] Criar testes para autenticacao
 - [x] Criar testes para visualizacao de horarios
 - [x] Criar testes para realizacao de agendamento
+- [x] Criar teste para concorrencia de agendamentos
+- [x] Impedir exclusao de horarios com agendamentos vinculados
+- [x] Validar formato e intervalo de datas e horarios
+- [x] Bloquear agendamentos aos domingos e fora do funcionamento
+- [x] Testar geracao anual sem duplicidade
+- [x] Testar filtros, paginacao e cancelamento pelo administrador
+- [x] Testar exclusao definitiva de agendamentos e liberacao do horario
+- [x] Testar auditoria de confirmacao e cancelamento
 - [x] Criar testes para cancelamento de agendamento
 - [x] Configurar pipeline para executar testes a cada push
 
@@ -52,7 +70,7 @@
 - [x] Criar Dockerfile do servico de autenticacao
 - [x] Criar Dockerfile do servico de agendamento
 - [x] Criar docker-compose para desenvolvimento local
-- [ ] :hourglass: Validar execucao local dos containers (requer Docker na maquina)
+- [x] Validar execucao local dos containers
 
 ## 6. GitHub Actions
 

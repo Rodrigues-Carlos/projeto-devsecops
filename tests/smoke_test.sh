@@ -28,7 +28,7 @@ echo "slot criado id=$SLOT_ID"
 echo "==> Cadastro + login de cliente (RF01/RF02)"
 EMAIL="cliente_$(date +%s)@example.com"
 curl -fsS -X POST "$API/auth/register" -H 'Content-Type: application/json' \
-  -d "{\"name\":\"Cliente Teste\",\"email\":\"$EMAIL\",\"password\":\"senha12345\"}" >/dev/null
+  -d "{\"name\":\"Cliente Teste\",\"email\":\"$EMAIL\",\"phone\":\"41999999999\",\"password\":\"senha12345\"}" >/dev/null
 CLIENT_TOKEN=$(curl -fsS -X POST "$API/auth/login" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$EMAIL\",\"password\":\"senha12345\"}" | sed -E 's/.*"access_token":"([^"]+)".*/\1/')
 echo "cliente autenticado"
