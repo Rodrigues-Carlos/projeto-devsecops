@@ -130,6 +130,7 @@ $("#registerForm").addEventListener("submit", async (e) => {
       body: {
         name: $("#regName").value,
         email: $("#regEmail").value,
+        phone: $("#regPhone").value,
         password: $("#regPassword").value,
       },
     });
@@ -156,15 +157,80 @@ $("#loginForm").addEventListener("submit", async (e) => {
   }
 });
 
+$("#showRecovery").addEventListener("click", () => {
+  $("#recuperar-conta").hidden = false;
+  $("#recoveryEmail").value = $("#loginEmail").value;
+  window.location.hash = "recuperar-conta";
+  $("#recoveryEmail").focus();
+});
+
+$("#hideRecovery").addEventListener("click", hideRecovery);
+
+function hideRecovery() {
+  $("#recuperar-conta").hidden = true;
+  $("#recoveryRequestForm").reset();
+  $("#passwordResetForm").reset();
+  $("#passwordResetForm").hidden = true;
+  $("#recoveryMessage").textContent = "";
+  window.location.hash = "login";
+}
+
+$("#recoveryRequestForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const data = await api("/auth/password-recovery/request", {
+      method: "POST",
+      body: { email: $("#recoveryEmail").value },
+    });
+    $("#recoveryMessage").textContent = data.message;
+    if (data.reset_token) {
+      $("#recoveryToken").value = data.reset_token;
+      $("#passwordResetForm").hidden = false;
+      toast("Token gerado. Defina sua nova senha.", "success");
+    } else {
+      $("#passwordResetForm").hidden = true;
+      toast(data.message);
+    }
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
+$("#passwordResetForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const data = await api("/auth/password-recovery/reset", {
+      method: "POST",
+      body: {
+        token: $("#recoveryToken").value,
+        new_password: $("#newPassword").value,
+      },
+    });
+    toast(data.message, "success");
+    $("#recoveryRequestForm").reset();
+    $("#recoveryMessage").textContent = "";
+    e.target.reset();
+    e.target.hidden = true;
+    hideRecovery();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
 /* ----------------------------------------------------------------------- */
 /* RF03 - Visualizar horarios disponiveis                                  */
 /* ----------------------------------------------------------------------- */
+const DATES_PER_PAGE = 3;
 let availableSlots = [];
+let visibleSlots = [];
+let datePageStart = 0;
 
 async function loadSlots() {
   const board = $("#availabilityBoard");
   if (!store.isLogged) {
     availableSlots = [];
+    visibleSlots = [];
+    $("#scheduleNavigation").hidden = true;
     board.replaceChildren(emptyState("Faca login para consultar horarios disponiveis."));
     populateBookingForm();
     return;
@@ -174,51 +240,129 @@ async function loadSlots() {
     availableSlots = (await api("/scheduling/slots", { auth: true })) || [];
   } catch (err) {
     availableSlots = [];
+    visibleSlots = [];
+    $("#scheduleNavigation").hidden = true;
     board.replaceChildren(emptyState(err.message));
     populateBookingForm();
     return;
   }
 
-  board.replaceChildren();
   if (availableSlots.length === 0) {
+    visibleSlots = [];
+    $("#scheduleNavigation").hidden = true;
+    board.replaceChildren();
     board.append(emptyState("Nenhum horario disponivel no momento."));
+    populateBookingForm();
+    return;
+  }
+
+  const dates = availableDates();
+  if (datePageStart >= dates.length) datePageStart = 0;
+  configureScheduleCalendar(dates);
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const board = $("#availabilityBoard");
+  const dates = availableDates();
+  const visibleDates = dates.slice(datePageStart, datePageStart + DATES_PER_PAGE);
+  visibleSlots = availableSlots.filter((slot) => visibleDates.includes(slot.date));
+
+  $("#scheduleNavigation").hidden = false;
+  $("#previousDates").disabled = datePageStart === 0;
+  $("#nextDates").disabled = datePageStart + DATES_PER_PAGE >= dates.length;
+  $("#visibleDateRange").textContent = visibleDates.length === 1
+    ? formatDate(visibleDates[0])
+    : `${formatDate(visibleDates[0])} a ${formatDate(visibleDates[visibleDates.length - 1])}`;
+  $("#scheduleDateJump").value = visibleDates[0];
+
+  board.replaceChildren();
+  const byBarber = groupBy(visibleSlots, (s) => s.barber);
+  if (Object.keys(byBarber).length === 0) {
+    board.append(emptyState("Nenhum horario disponivel neste periodo."));
   } else {
-    const byBarber = groupBy(availableSlots, (s) => s.barber);
-    Object.keys(byBarber).forEach((barber) => {
+    Object.keys(byBarber).sort().forEach((barber) => {
       const row = document.createElement("article");
       row.className = "barber-row";
 
+      const header = document.createElement("header");
+      header.className = "barber-header";
+
       const name = document.createElement("div");
-      name.className = "barber-name";
       const strong = document.createElement("strong");
       strong.textContent = barber;
       const span = document.createElement("span");
-      span.textContent = `${byBarber[barber].length} horarios`;
+      span.textContent = `${byBarber[barber].length} horarios disponiveis`;
       name.append(strong, span);
 
-      const list = document.createElement("div");
-      list.className = "slot-list";
-      byBarber[barber].forEach((slot) => {
-        const cell = document.createElement("div");
-        cell.className = "slot available";
-        const t = document.createElement("strong");
-        t.textContent = slot.time;
-        const d = document.createElement("span");
-        d.textContent = slot.date;
-        cell.append(t, d);
-        list.append(cell);
+      const badge = document.createElement("span");
+      badge.className = "availability-badge";
+      badge.textContent = "Disponivel";
+      header.append(name, badge);
+
+      const days = document.createElement("div");
+      days.className = "barber-days";
+      const byDate = groupBy(byBarber[barber], (s) => s.date);
+
+      Object.keys(byDate).sort().forEach((date) => {
+        const day = document.createElement("section");
+        day.className = "day-group";
+
+        const dayHeading = document.createElement("div");
+        dayHeading.className = "day-heading";
+        const weekday = document.createElement("strong");
+        weekday.textContent = formatWeekday(date);
+        const formattedDate = document.createElement("span");
+        formattedDate.textContent = formatDate(date);
+        dayHeading.append(weekday, formattedDate);
+
+        const list = document.createElement("div");
+        list.className = "slot-list";
+        byDate[date]
+          .sort((a, b) => a.time.localeCompare(b.time))
+          .forEach((slot) => {
+            const cell = document.createElement("button");
+            cell.type = "button";
+            cell.className = "slot available";
+            cell.textContent = slot.time;
+            cell.title = `Agendar com ${slot.barber} em ${formatDate(slot.date)} as ${slot.time}`;
+            cell.addEventListener("click", () => selectSlotForBooking(slot));
+            list.append(cell);
+          });
+
+        day.append(dayHeading, list);
+        days.append(day);
       });
 
-      row.append(name, list);
+      row.append(header, days);
       board.append(row);
     });
   }
   populateBookingForm();
 }
 
+function availableDates() {
+  return [...new Set(availableSlots.map((slot) => slot.date))].sort();
+}
+
+function configureScheduleCalendar(dates) {
+  const calendar = $("#scheduleDateJump");
+  calendar.min = dates[0];
+  calendar.max = dates[dates.length - 1];
+}
+
+function selectSlotForBooking(slot) {
+  $("#bookBarber").value = slot.barber;
+  updateSlotOptions();
+  $("#bookSlot").value = String(slot.id);
+  $("#agendar").scrollIntoView({ behavior: "smooth", block: "start" });
+  toast(`${slot.barber}, ${formatDate(slot.date)} as ${slot.time} selecionado.`, "success");
+}
+
 function populateBookingForm() {
   const barberSel = $("#bookBarber");
-  const barbers = [...new Set(availableSlots.map((s) => s.barber))].sort();
+  const selectedBarber = barberSel.value;
+  const barbers = [...new Set(visibleSlots.map((s) => s.barber))].sort();
   barberSel.replaceChildren();
 
   if (!store.isLogged) {
@@ -249,6 +393,7 @@ function populateBookingForm() {
     opt.textContent = b;
     barberSel.append(opt);
   });
+  if (barbers.includes(selectedBarber)) barberSel.value = selectedBarber;
   updateSlotOptions();
 }
 
@@ -256,7 +401,7 @@ function updateSlotOptions() {
   const barber = $("#bookBarber").value;
   const slotSel = $("#bookSlot");
   slotSel.replaceChildren();
-  const slots = availableSlots
+  const slots = visibleSlots
     .filter((s) => !barber || s.barber === barber)
   if (slots.length === 0) {
     const opt = document.createElement("option");
@@ -271,13 +416,40 @@ function updateSlotOptions() {
   slots.forEach((s) => {
     const opt = document.createElement("option");
     opt.value = s.id;
-    opt.textContent = `${s.barber} - ${s.date} ${s.time}`;
+    opt.textContent = `${s.barber} - ${formatDate(s.date)} as ${s.time}`;
     slotSel.append(opt);
   });
 }
 
 $("#bookBarber").addEventListener("change", updateSlotOptions);
 $("#refreshSlots").addEventListener("click", loadSlots);
+$("#previousDates").addEventListener("click", () => {
+  datePageStart = Math.max(0, datePageStart - DATES_PER_PAGE);
+  renderSchedule();
+});
+$("#nextDates").addEventListener("click", () => {
+  const dates = availableDates();
+  datePageStart = Math.min(
+    Math.max(0, dates.length - 1),
+    datePageStart + DATES_PER_PAGE,
+  );
+  renderSchedule();
+});
+$("#scheduleDateJump").addEventListener("change", (event) => {
+  const dates = availableDates();
+  const requestedDate = event.target.value;
+  let index = dates.findIndex((date) => date >= requestedDate);
+
+  if (index < 0) index = Math.max(0, dates.length - DATES_PER_PAGE);
+  datePageStart = index;
+  renderSchedule();
+
+  if (dates[index] !== requestedDate) {
+    toast(
+      `Nao ha atendimento em ${formatDate(requestedDate)}. Exibindo ${formatDate(dates[index])}.`,
+    );
+  }
+});
 
 /* ----------------------------------------------------------------------- */
 /* RF04 - Realizar agendamento                                             */
@@ -334,12 +506,12 @@ async function loadMyAppointments() {
     const tag = document.createElement("span");
     tag.textContent = appt.service;
     const title = document.createElement("strong");
-    title.textContent = `${appt.barber} - ${appt.date} ${appt.time}`;
+    title.textContent = `${appt.barber} - ${formatDate(appt.date)} as ${appt.time}`;
     const statusP = document.createElement("p");
-    statusP.textContent = `Status: ${appt.status}`;
+    statusP.textContent = `Status: ${formatAppointmentStatus(appt.status)}`;
     card.append(tag, title, statusP);
 
-    if (appt.status === "ativo") {
+    if (["ativo", "pendente", "confirmado"].includes(appt.status)) {
       const cancel = document.createElement("button");
       cancel.type = "button";
       cancel.textContent = "Cancelar";
@@ -365,6 +537,11 @@ async function cancelAppointment(id) {
 /* ----------------------------------------------------------------------- */
 /* RF06-RF10 - Painel administrativo                                       */
 /* ----------------------------------------------------------------------- */
+let adminSlotPage = 1;
+let adminSlotPages = 1;
+let adminAppointmentPage = 1;
+let adminAppointmentPages = 1;
+
 $("#slotForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
@@ -386,39 +563,143 @@ $("#slotForm").addEventListener("submit", async (e) => {
   }
 });
 
+$("#workingHoursForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await api("/scheduling/working-hours", {
+      method: "POST",
+      auth: true,
+      body: {
+        barber: $("#workingBarber").value,
+        start_time: $("#workingStart").value,
+        end_time: $("#workingEnd").value,
+        interval_minutes: Number($("#workingInterval").value),
+      },
+    });
+    toast("Funcionamento salvo e agenda anual atualizada.", "success");
+    await loadSlots();
+    await loadWorkingHours();
+    await loadAdminSlots();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
 async function loadAdmin() {
-  await Promise.all([loadAdminSlots(), loadAdminAppointments()]);
+  await Promise.all([
+    loadWorkingHours(),
+    loadAdminSlots(),
+    loadAdminAppointments(),
+  ]);
 }
 
-async function loadAdminSlots() {
-  const container = $("#adminSlots");
-  let slots = [];
+async function loadWorkingHours() {
+  const container = $("#workingHoursList");
+  let rules = [];
   try {
-    slots = (await api("/scheduling/slots?all=true", { auth: true })) || [];
+    rules = (await api("/scheduling/working-hours", { auth: true })) || [];
   } catch (err) {
     container.replaceChildren(emptyState(err.message));
     return;
   }
-  $("#metricSlots").textContent = String(slots.filter((s) => s.available).length);
+  container.replaceChildren();
+  rules.forEach((rule) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "working-hours-item";
+    item.textContent = `${rule.barber}: ${rule.start_time} as ${rule.end_time}, a cada ${rule.interval_minutes} min`;
+    item.addEventListener("click", () => {
+      $("#workingBarber").value = rule.barber;
+      $("#workingStart").value = rule.start_time;
+      $("#workingEnd").value = rule.end_time;
+      $("#workingInterval").value = String(rule.interval_minutes);
+    });
+    container.append(item);
+  });
+}
+
+async function loadAdminSlots() {
+  const container = $("#adminSlots");
+  const params = new URLSearchParams({
+    page: String(adminSlotPage),
+    page_size: "20",
+    status: $("#slotFilterStatus").value,
+  });
+  const barber = $("#slotFilterBarber").value.trim();
+  const date = $("#slotFilterDate").value;
+  if (barber) params.set("barber", barber);
+  if (date) params.set("date", date);
+
+  let data;
+  try {
+    data = await api(`/scheduling/admin/slots?${params}`, { auth: true });
+  } catch (err) {
+    container.replaceChildren(emptyState(err.message));
+    return;
+  }
+  const slots = data.items || [];
+  adminSlotPage = data.page;
+  adminSlotPages = data.pages;
+  $("#metricSlots").textContent = String(data.available_total);
+  $("#slotPageInfo").textContent = `Pagina ${data.page} de ${data.pages} - ${data.total} resultados`;
+  $("#previousSlotPage").disabled = data.page <= 1;
+  $("#nextSlotPage").disabled = data.page >= data.pages;
 
   container.replaceChildren();
   if (slots.length === 0) {
-    container.append(emptyState("Nenhum horario cadastrado."));
+    container.append(emptyState("Nenhum horario encontrado com esses filtros."));
     return;
   }
   slots.forEach((slot) => {
     const row = document.createElement("div");
     row.className = "list-row";
-    const info = document.createElement("span");
-    info.textContent = `${slot.barber} - ${slot.date} ${slot.time} (${slot.available ? "livre" : "ocupado"})`;
+    const info = document.createElement("div");
+    info.className = "list-row-info";
+    const title = document.createElement("strong");
+    title.textContent = `${slot.barber} - ${formatDate(slot.date)} as ${slot.time}`;
+    const statusLabel = document.createElement("span");
+    statusLabel.className = `status-chip ${slot.available ? "free" : "busy"}`;
+    statusLabel.textContent = slot.available ? "Livre" : "Ocupado";
+    info.append(title, statusLabel);
     const del = document.createElement("button");
     del.type = "button";
-    del.className = "button ghost small";
-    del.textContent = "Remover";
-    del.addEventListener("click", () => deleteSlot(slot.id));
+    if (slot.available) {
+      del.className = "button ghost small";
+      del.textContent = "Remover";
+      del.addEventListener("click", () => deleteSlot(slot.id));
+    } else {
+      del.className = "button danger small";
+      del.textContent = "Cancelar agendamento";
+      del.addEventListener("click", () => cancelAppointmentBySlot(slot));
+    }
     row.append(info, del);
     container.append(row);
   });
+}
+
+async function cancelAppointmentBySlot(slot) {
+  const confirmed = window.confirm(
+    `Cancelar o agendamento de ${slot.barber} em ${formatDate(slot.date)} as ${slot.time}?`,
+  );
+  if (!confirmed) return;
+
+  try {
+    const appointment = await api(
+      `/scheduling/admin/slots/${slot.id}/cancel-appointment`,
+      { method: "PUT", auth: true },
+    );
+    toast(
+      `Agendamento de ${appointment.user_name || appointment.user_email} cancelado.`,
+      "success",
+    );
+    await Promise.all([
+      loadAdminSlots(),
+      loadAdminAppointments(),
+      loadSlots(),
+    ]);
+  } catch (err) {
+    toast(err.message, "error");
+  }
 }
 
 async function deleteSlot(id) {
@@ -434,31 +715,191 @@ async function deleteSlot(id) {
 
 async function loadAdminAppointments() {
   const container = $("#adminAppointments");
-  let items = [];
+  const params = new URLSearchParams({
+    page: String(adminAppointmentPage),
+    page_size: "20",
+    status: $("#appointmentFilterStatus").value,
+  });
+  const email = $("#appointmentFilterEmail").value.trim();
+  if (email) params.set("email", email);
+
+  let data;
   try {
-    items = (await api("/scheduling/appointments", { auth: true })) || [];
+    data = await api(`/scheduling/admin/appointments?${params}`, { auth: true });
   } catch (err) {
     container.replaceChildren(emptyState(err.message));
     return;
   }
-  const active = items.filter((a) => a.status === "ativo");
-  $("#metricAppointments").textContent = String(active.length);
-  $("#metricCancelled").textContent = String(items.filter((a) => a.status === "cancelado").length);
+  const items = data.items || [];
+  adminAppointmentPage = data.page;
+  adminAppointmentPages = data.pages;
+  $("#metricAppointments").textContent = String(data.active_total);
+  $("#metricCancelled").textContent = String(data.cancelled_total);
+  $("#appointmentPageInfo").textContent = `Pagina ${data.page} de ${data.pages} - ${data.total} resultados`;
+  $("#previousAppointmentPage").disabled = data.page <= 1;
+  $("#nextAppointmentPage").disabled = data.page >= data.pages;
 
   container.replaceChildren();
   if (items.length === 0) {
-    container.append(emptyState("Nenhum agendamento."));
+    container.append(emptyState("Nenhum agendamento encontrado."));
     return;
   }
   items.forEach((appt) => {
     const row = document.createElement("div");
     row.className = "list-row";
-    const info = document.createElement("span");
-    info.textContent = `${appt.user_email} | ${appt.barber} ${appt.date} ${appt.time} | ${appt.service} | ${appt.status}`;
+    const info = document.createElement("div");
+    info.className = "list-row-info";
+    const title = document.createElement("strong");
+    title.textContent = `${appt.barber} - ${formatDate(appt.date)} as ${appt.time}`;
+    const details = document.createElement("span");
+    details.textContent = `${appt.user_name || "Cliente"} - ${appt.user_email} - ${formatPhone(appt.user_phone)} - ${appt.service}`;
+    const statusLabel = document.createElement("span");
+    statusLabel.className = `status-chip ${appointmentStatusClass(appt.status)}`;
+    statusLabel.textContent = formatAppointmentStatus(appt.status);
+    info.append(title, details, statusLabel);
+    if (appt.status_changed_by) {
+      const audit = document.createElement("small");
+      const action = appt.status === "cancelado" ? "Cancelado" : "Confirmado";
+      audit.className = "audit-line";
+      audit.textContent = `${action} por ${appt.status_changed_by}${appt.status_changed_at ? ` em ${formatDateTime(appt.status_changed_at)}` : ""}`;
+      info.append(audit);
+    }
     row.append(info);
+    const actions = document.createElement("div");
+    actions.className = "list-row-actions";
+    if (appt.user_phone) {
+      const whatsapp = document.createElement("a");
+      whatsapp.className = "button whatsapp small";
+      whatsapp.target = "_blank";
+      whatsapp.rel = "noopener noreferrer";
+      whatsapp.href = buildWhatsAppLink(appt);
+      whatsapp.textContent = "WhatsApp";
+      actions.append(whatsapp);
+    }
+    if (appt.status === "pendente") {
+      const confirm = document.createElement("button");
+      confirm.type = "button";
+      confirm.className = "button primary small";
+      confirm.textContent = "Confirmar";
+      confirm.addEventListener("click", () => confirmAdminAppointment(appt.id));
+      actions.append(confirm);
+    }
+    if (["ativo", "pendente", "confirmado"].includes(appt.status)) {
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.className = "button danger small";
+      cancel.textContent = "Cancelar";
+      cancel.addEventListener("click", () => cancelAdminAppointment(appt.id));
+      actions.append(cancel);
+    }
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "button ghost small delete-action";
+    remove.textContent = "Excluir";
+    remove.addEventListener("click", () => deleteAdminAppointment(appt));
+    actions.append(remove);
+    row.append(actions);
     container.append(row);
   });
 }
+
+async function confirmAdminAppointment(id) {
+  try {
+    await api(`/scheduling/admin/appointments/${id}/confirm`, {
+      method: "PUT",
+      auth: true,
+    });
+    toast("Agendamento confirmado.", "success");
+    await loadAdminAppointments();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+}
+
+async function cancelAdminAppointment(id) {
+  try {
+    await api(`/scheduling/appointments/${id}`, {
+      method: "DELETE",
+      auth: true,
+    });
+    toast("Agendamento do cliente cancelado.", "success");
+    await Promise.all([
+      loadAdminAppointments(),
+      loadAdminSlots(),
+      loadSlots(),
+    ]);
+  } catch (err) {
+    toast(err.message, "error");
+  }
+}
+
+async function deleteAdminAppointment(appt) {
+  const confirmed = window.confirm(
+    `Excluir definitivamente o agendamento de ${appt.user_email} em ${formatDate(appt.date)} as ${appt.time}?`,
+  );
+  if (!confirmed) return;
+
+  try {
+    await api(`/scheduling/admin/appointments/${appt.id}`, {
+      method: "DELETE",
+      auth: true,
+    });
+    toast("Agendamento excluido definitivamente.", "success");
+    await Promise.all([
+      loadAdminAppointments(),
+      loadAdminSlots(),
+      loadSlots(),
+    ]);
+  } catch (err) {
+    toast(err.message, "error");
+  }
+}
+
+$("#slotFilters").addEventListener("submit", (event) => {
+  event.preventDefault();
+  adminSlotPage = 1;
+  loadAdminSlots();
+});
+$("#clearSlotFilters").addEventListener("click", () => {
+  $("#slotFilters").reset();
+  adminSlotPage = 1;
+  loadAdminSlots();
+});
+$("#previousSlotPage").addEventListener("click", () => {
+  if (adminSlotPage > 1) {
+    adminSlotPage -= 1;
+    loadAdminSlots();
+  }
+});
+$("#nextSlotPage").addEventListener("click", () => {
+  if (adminSlotPage < adminSlotPages) {
+    adminSlotPage += 1;
+    loadAdminSlots();
+  }
+});
+
+$("#appointmentFilters").addEventListener("submit", (event) => {
+  event.preventDefault();
+  adminAppointmentPage = 1;
+  loadAdminAppointments();
+});
+$("#clearAppointmentFilters").addEventListener("click", () => {
+  $("#appointmentFilters").reset();
+  adminAppointmentPage = 1;
+  loadAdminAppointments();
+});
+$("#previousAppointmentPage").addEventListener("click", () => {
+  if (adminAppointmentPage > 1) {
+    adminAppointmentPage -= 1;
+    loadAdminAppointments();
+  }
+});
+$("#nextAppointmentPage").addEventListener("click", () => {
+  if (adminAppointmentPage < adminAppointmentPages) {
+    adminAppointmentPage += 1;
+    loadAdminAppointments();
+  }
+});
 
 /* ----------------------------------------------------------------------- */
 /* Utilitarios                                                             */
@@ -478,8 +919,79 @@ function groupBy(arr, keyFn) {
   }, {});
 }
 
+function formatDate(isoDate) {
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function formatWeekday(isoDate) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const weekday = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+  return weekday.charAt(0).toUpperCase() + weekday.slice(1);
+}
+
+function formatAppointmentStatus(status) {
+  const labels = {
+    ativo: "Confirmado",
+    pendente: "Pendente",
+    confirmado: "Confirmado",
+    cancelado: "Cancelado",
+  };
+  return labels[status] || status;
+}
+
+function appointmentStatusClass(status) {
+  if (status === "pendente") return "pending";
+  if (status === "cancelado") return "cancelled";
+  return "free";
+}
+
+function formatPhone(phone) {
+  if (!phone) return "WhatsApp nao informado";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  return phone;
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function buildWhatsAppLink(appt) {
+  const phone = appt.user_phone.replace(/\D/g, "");
+  const countryPhone = phone.startsWith("55") ? phone : `55${phone}`;
+  const message = encodeURIComponent(
+    `Ola, ${appt.user_name || "cliente"}! Seu agendamento com ${appt.barber} esta ${formatAppointmentStatus(appt.status).toLowerCase()} para ${formatDate(appt.date)} as ${appt.time}.`,
+  );
+  return `https://wa.me/${countryPhone}?text=${message}`;
+}
+
+function configureDateLimits() {
+  const today = new Date();
+  const lastDay = new Date(today);
+  lastDay.setDate(lastDay.getDate() + 365);
+  $("#slotDate").min = formatIsoDate(today);
+  $("#slotDate").max = formatIsoDate(lastDay);
+}
+
+function formatIsoDate(value) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 /* ----------------------------------------------------------------------- */
 /* Inicializacao                                                           */
 /* ----------------------------------------------------------------------- */
 renderAuth();
 loadSlots();
+configureDateLimits();
