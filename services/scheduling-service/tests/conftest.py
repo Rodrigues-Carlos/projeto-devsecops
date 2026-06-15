@@ -27,6 +27,8 @@ def _token(sub, email, role):
         "sub": str(sub),
         "email": email,
         "role": role,
+        "name": "Administrador" if role == "admin" else "Cliente Teste",
+        "phone": "41999999999",
         "iat": now,
         "exp": now + datetime.timedelta(hours=1),
     }
