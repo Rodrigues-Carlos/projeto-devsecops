@@ -2,26 +2,71 @@
 
 Sistema web de agendamento online para barbearias e pequenos estabelecimentos, desenvolvido como projeto da disciplina de DevSecOps.
 
-## Stack inicial
+## Stack
 
 - HTML
 - CSS
 - JavaScript
+- ASP.NET Core
 - GitHub Actions
 
-Nesta primeira etapa, a aplicacao web e estatica e nao exige Docker, XAMPP, banco de dados ou instalacao de dependencias.
+Os agendamentos sao salvos pelo `scheduling-service` em um arquivo JSON local.
 
-Os agendamentos realizados sao armazenados localmente no navegador. A integracao com API e banco de dados sera feita em uma etapa posterior.
+## Como executar localmente
 
-## Como abrir localmente
+### Pre-requisito
 
-Abra o arquivo abaixo no navegador:
+- .NET SDK 10
 
-```text
-apps/web/index.html
+Na raiz do projeto, execute:
+
+```powershell
+dotnet run --project services/scheduling-service
 ```
 
-## Estrutura inicial
+Quando o terminal informar que a aplicacao foi iniciada, acesse:
+
+```text
+http://localhost:5080
+```
+
+O `scheduling-service` hospeda o frontend e a API, permitindo executar toda a
+aplicacao com um unico comando.
+
+> Nao abra o arquivo `apps/web/index.html` diretamente. O frontend depende da
+> API em execucao para salvar e listar os agendamentos.
+
+Para encerrar a aplicacao, pressione `Ctrl+C` no terminal.
+
+Para verificar se a API esta funcionando, acesse:
+
+```text
+http://localhost:5080/health
+```
+
+## API de agendamentos
+
+| Metodo | Endpoint | Descricao |
+| --- | --- | --- |
+| `GET` | `/health` | Verifica se o servico esta ativo |
+| `GET` | `/agendamentos` | Lista os agendamentos |
+| `POST` | `/agendamentos` | Cria um agendamento |
+
+Exemplo do corpo para criacao:
+
+```json
+{
+  "nome": "Maria",
+  "servico": "Corte de cabelo",
+  "barbeiro": "Nathan",
+  "data": "2026-06-20",
+  "horario": "10:00"
+}
+```
+
+O servico retorna `409 Conflict` quando o barbeiro ja possui uma reserva na mesma data e horario.
+
+## Estrutura
 
 ```text
 apps/

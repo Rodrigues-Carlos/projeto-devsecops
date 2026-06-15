@@ -1,3 +1,7 @@
 *.pdf
 *.txt
+services/scheduling-service/data/
+services/scheduling-service/bin/
+services/scheduling-service/obj/
+services/scheduling-service/*.log
 

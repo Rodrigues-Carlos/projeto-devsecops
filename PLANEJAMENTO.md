@@ -13,13 +13,13 @@
 - [ ] RF01 - Cadastro de usuario
 - [ ] RF02 - Autenticacao de usuario
 - [ ] RF03 - Visualizar horarios disponiveis
-- [x] RF04 - Realizar agendamento no frontend com persistencia local
+- [x] RF04 - Realizar agendamento no frontend com persistencia via API REST
 - [ ] RF05 - Cancelar agendamento
 - [ ] RF06 - Painel administrativo
 - [ ] RF07 - Definir horarios
 - [ ] RF08 - Editar horarios
 - [ ] RF09 - Remover horarios
-- [ ] RF10 - Visualizar agendamentos
+- [x] RF10 - Visualizar agendamentos
 
 ## 3. Testes
 
@@ -36,11 +36,11 @@
 - [x] Criar aplicacao web
 - [ ] Criar API Gateway
 - [ ] Criar servico de autenticacao
-- [ ] Criar servico de agendamento
+- [x] Criar servico de agendamento
 - [ ] Criar banco de dados de usuarios
-- [ ] Criar banco de dados de agendamentos
-- [ ] Fazer comunicacao entre componentes via APIs REST
-- [ ] Documentar endpoints principais
+- [x] Criar persistencia local de agendamentos
+- [x] Fazer comunicacao entre frontend e servico de agendamento via API REST
+- [x] Documentar endpoints do servico de agendamento
 
 ## 5. Docker
 
@@ -82,7 +82,7 @@
 - [ ] Implementar criptografia/hash de senhas
 - [ ] Implementar autenticacao com JWT
 - [ ] Implementar controle de acesso por perfil
-- [ ] Validar entradas no backend
+- [x] Validar entradas no backend
 - [ ] Proteger contra SQL Injection
 - [ ] Proteger contra XSS
 - [ ] Implementar logs de auditoria
@@ -92,8 +92,8 @@
 
 ## 9. Documentacao e entrega
 
-- [ ] Atualizar README com instrucoes de uso
-- [ ] Atualizar documentacao da arquitetura
+- [x] Atualizar README com instrucoes de uso
+- [x] Atualizar documentacao da arquitetura do servico de agendamento
 - [ ] Atualizar documentacao da pipeline
 - [ ] Atualizar documentacao de seguranca
 - [ ] Conferir criterios avaliativos

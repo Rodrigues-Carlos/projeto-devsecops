@@ -51,7 +51,10 @@ const barbeiroSelect = document.querySelector('select[name="barbeiro"]');
 const dataInput = document.querySelector('input[name="data"]');
 const horarioSelect = document.querySelector('select[name="horario"]');
 const appointmentsMetric = document.querySelector(".admin-panel .metric");
-const storageKey = "hora-marcada-agendamentos";
+const apiUrl =
+  window.SCHEDULING_API_URL ||
+  (window.location.protocol.startsWith("http") ? window.location.origin : "http://localhost:5080");
+let agendamentos = [];
 
 escalas.forEach((escala) => {
   const row = document.createElement("article");
@@ -91,19 +94,18 @@ function horariosPorBarbeiro(nomeBarbeiro) {
   return escala ? escala.horarios.map((horario) => horario.hora) : [];
 }
 
-function carregarAgendamentos() {
-  try {
-    return JSON.parse(localStorage.getItem(storageKey)) || [];
-  } catch {
-    return [];
+async function carregarAgendamentos() {
+  const response = await fetch(`${apiUrl}/agendamentos`);
+
+  if (!response.ok) {
+    throw new Error("Nao foi possivel carregar os agendamentos.");
   }
+
+  agendamentos = await response.json();
+  return agendamentos;
 }
 
-function salvarAgendamentos(agendamentos) {
-  localStorage.setItem(storageKey, JSON.stringify(agendamentos));
-}
-
-function horarioEstaOcupado(barbeiro, data, horario, agendamentos = carregarAgendamentos()) {
+function horarioEstaOcupado(barbeiro, data, horario) {
   return agendamentos.some(
     (agendamento) =>
       agendamento.barbeiro === barbeiro &&
@@ -112,24 +114,23 @@ function horarioEstaOcupado(barbeiro, data, horario, agendamentos = carregarAgen
   );
 }
 
-function barbeiroDisponivel(data, horario, agendamentos) {
+function barbeiroDisponivel(data, horario) {
   return escalas.find(
     (escala) =>
       escala.horarios.some((item) => item.hora === horario) &&
-      !horarioEstaOcupado(escala.barbeiro, data, horario, agendamentos)
+      !horarioEstaOcupado(escala.barbeiro, data, horario)
   );
 }
 
 function atualizarHorariosDoFormulario() {
   const horarios = horariosPorBarbeiro(barbeiroSelect.value);
-  const agendamentos = carregarAgendamentos();
 
   horarioSelect.innerHTML = "";
   horarios.forEach((hora) => {
     const qualquerProfissional = barbeiroSelect.value === "Qualquer profissional disponivel";
     const disponivel = qualquerProfissional
-      ? barbeiroDisponivel(dataInput.value, hora, agendamentos)
-      : !horarioEstaOcupado(barbeiroSelect.value, dataInput.value, hora, agendamentos);
+      ? barbeiroDisponivel(dataInput.value, hora)
+      : !horarioEstaOcupado(barbeiroSelect.value, dataInput.value, hora);
 
     if (!disponivel) {
       return;
@@ -165,8 +166,6 @@ function dataLocalAtual() {
 }
 
 function renderizarAgendamentos() {
-  const agendamentos = carregarAgendamentos();
-
   appointmentsList.innerHTML = "";
   appointmentsMetric.textContent = agendamentos.length;
 
@@ -192,7 +191,7 @@ function renderizarAgendamentos() {
     });
 }
 
-function realizarAgendamento(event) {
+async function realizarAgendamento(event) {
   event.preventDefault();
 
   if (!appointmentForm.reportValidity() || !horarioSelect.value) {
@@ -202,37 +201,84 @@ function realizarAgendamento(event) {
   }
 
   const dados = new FormData(appointmentForm);
-  const agendamentos = carregarAgendamentos();
   const horario = dados.get("horario");
   const data = dados.get("data");
   const escolhaBarbeiro = dados.get("barbeiro");
   const escala =
     escolhaBarbeiro === "Qualquer profissional disponivel"
-      ? barbeiroDisponivel(data, horario, agendamentos)
+      ? barbeiroDisponivel(data, horario)
       : escalas.find((item) => item.barbeiro === escolhaBarbeiro);
 
-  if (!escala || horarioEstaOcupado(escala.barbeiro, data, horario, agendamentos)) {
+  if (!escala || horarioEstaOcupado(escala.barbeiro, data, horario)) {
     appointmentMessage.textContent = "Esse horario acabou de ficar indisponivel. Escolha outro.";
     appointmentMessage.className = "form-message error";
     atualizarHorariosDoFormulario();
     return;
   }
 
-  agendamentos.push({
-    id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-    nome: dados.get("nome").trim(),
-    servico: dados.get("servico"),
-    barbeiro: escala.barbeiro,
-    data,
-    horario
-  });
+  const submitButton = appointmentForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  appointmentMessage.textContent = "Salvando agendamento...";
+  appointmentMessage.className = "form-message";
 
-  salvarAgendamentos(agendamentos);
-  renderizarAgendamentos();
-  appointmentMessage.textContent = `Agendamento confirmado com ${escala.barbeiro}.`;
-  appointmentMessage.className = "form-message success";
-  appointmentForm.reset();
-  dataInput.value = dataLocalAtual();
+  try {
+    const response = await fetch(`${apiUrl}/agendamentos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome: dados.get("nome").trim(),
+        servico: dados.get("servico"),
+        barbeiro: escala.barbeiro,
+        data,
+        horario
+      })
+    });
+
+    if (response.status === 409) {
+      await carregarAgendamentos();
+      renderizarAgendamentos();
+      atualizarHorariosDoFormulario();
+      throw new Error("Esse horario acabou de ficar indisponivel. Escolha outro.");
+    }
+
+    if (!response.ok) {
+      throw new Error("Nao foi possivel salvar o agendamento. Tente novamente.");
+    }
+
+    const novoAgendamento = await response.json();
+    agendamentos.push(novoAgendamento);
+    renderizarAgendamentos();
+    appointmentMessage.textContent = `Agendamento confirmado com ${escala.barbeiro}.`;
+    appointmentMessage.className = "form-message success";
+    appointmentForm.reset();
+    dataInput.value = dataLocalAtual();
+    atualizarHorariosDoFormulario();
+  } catch (error) {
+    appointmentMessage.textContent = error.message;
+    appointmentMessage.className = "form-message error";
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+async function iniciarAplicacao() {
+  dataInput.min = dataLocalAtual();
+  dataInput.value = dataInput.min;
+
+  appointmentsList.innerHTML = '<p class="empty-state">Carregando agendamentos...</p>';
+
+  try {
+    await carregarAgendamentos();
+    renderizarAgendamentos();
+  } catch (error) {
+    appointmentsMetric.textContent = "0";
+    appointmentsList.innerHTML =
+      '<p class="empty-state">Nao foi possivel carregar os agendamentos.</p>';
+    appointmentMessage.textContent =
+      "O servico de agendamentos esta indisponivel. Inicie a API e recarregue a pagina.";
+    appointmentMessage.className = "form-message error";
+  }
+
   atualizarHorariosDoFormulario();
 }
 
@@ -240,7 +286,4 @@ barbeiroSelect.addEventListener("change", atualizarHorariosDoFormulario);
 dataInput.addEventListener("change", atualizarHorariosDoFormulario);
 appointmentForm.addEventListener("submit", realizarAgendamento);
 
-dataInput.min = dataLocalAtual();
-dataInput.value = dataInput.min;
-atualizarHorariosDoFormulario();
-renderizarAgendamentos();
+iniciarAplicacao();
