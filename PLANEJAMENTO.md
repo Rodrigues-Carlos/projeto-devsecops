@@ -14,7 +14,7 @@
 - [ ] RF02 - Autenticacao de usuario
 - [ ] RF03 - Visualizar horarios disponiveis
 - [x] RF04 - Realizar agendamento no frontend com persistencia via API REST
-- [ ] RF05 - Cancelar agendamento
+- [x] RF05 - Cancelar agendamento
 - [ ] RF06 - Painel administrativo
 - [ ] RF07 - Definir horarios
 - [ ] RF08 - Editar horarios

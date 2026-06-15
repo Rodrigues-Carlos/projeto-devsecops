@@ -51,6 +51,7 @@ http://localhost:5080/health
 | `GET` | `/health` | Verifica se o servico esta ativo |
 | `GET` | `/agendamentos` | Lista os agendamentos |
 | `POST` | `/agendamentos` | Cria um agendamento |
+| `DELETE` | `/agendamentos/{id}` | Cancela um agendamento |
 
 Exemplo do corpo para criacao:
 
@@ -65,6 +66,7 @@ Exemplo do corpo para criacao:
 ```
 
 O servico retorna `409 Conflict` quando o barbeiro ja possui uma reserva na mesma data e horario.
+Ao cancelar, retorna `204 No Content` ou `404 Not Found` quando o agendamento nao existe.
 
 ## Estrutura
 

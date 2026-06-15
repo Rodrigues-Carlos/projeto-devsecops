@@ -47,6 +47,7 @@ const board = document.querySelector("#availabilityBoard");
 const appointmentForm = document.querySelector("#appointmentForm");
 const appointmentsList = document.querySelector("#appointmentsList");
 const appointmentMessage = document.querySelector("#appointmentMessage");
+const appointmentsMessage = document.querySelector("#appointmentsMessage");
 const barbeiroSelect = document.querySelector('select[name="barbeiro"]');
 const dataInput = document.querySelector('input[name="data"]');
 const horarioSelect = document.querySelector('select[name="horario"]');
@@ -181,14 +182,72 @@ function renderizarAgendamentos() {
       const dataHorario = document.createElement("span");
       const servico = document.createElement("strong");
       const cliente = document.createElement("p");
+      const cancelarButton = document.createElement("button");
 
       dataHorario.textContent = `${formatarData(agendamento.data)} as ${agendamento.horario}`;
       servico.textContent = agendamento.servico;
       cliente.textContent = `${agendamento.nome} com ${agendamento.barbeiro}`;
+      cancelarButton.type = "button";
+      cancelarButton.textContent = "Cancelar";
+      cancelarButton.dataset.agendamentoId = agendamento.id;
+      cancelarButton.setAttribute(
+        "aria-label",
+        `Cancelar agendamento de ${agendamento.nome} em ${formatarData(agendamento.data)}`
+      );
 
-      card.append(dataHorario, servico, cliente);
+      card.append(dataHorario, servico, cliente, cancelarButton);
       appointmentsList.appendChild(card);
     });
+}
+
+async function cancelarAgendamento(event) {
+  const button = event.target.closest("button[data-agendamento-id]");
+  if (!button) {
+    return;
+  }
+
+  const agendamento = agendamentos.find((item) => item.id === button.dataset.agendamentoId);
+  if (!agendamento) {
+    return;
+  }
+
+  const confirmado = window.confirm(
+    `Cancelar o agendamento de ${agendamento.nome} em ${formatarData(agendamento.data)} as ${agendamento.horario}?`
+  );
+  if (!confirmado) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Cancelando...";
+
+  try {
+    const response = await fetch(`${apiUrl}/agendamentos/${agendamento.id}`, {
+      method: "DELETE"
+    });
+
+    if (response.status === 404) {
+      await carregarAgendamentos();
+      renderizarAgendamentos();
+      atualizarHorariosDoFormulario();
+      throw new Error("Esse agendamento ja havia sido cancelado.");
+    }
+
+    if (!response.ok) {
+      throw new Error("Nao foi possivel cancelar o agendamento. Tente novamente.");
+    }
+
+    agendamentos = agendamentos.filter((item) => item.id !== agendamento.id);
+    renderizarAgendamentos();
+    atualizarHorariosDoFormulario();
+    appointmentsMessage.textContent = "Agendamento cancelado com sucesso.";
+    appointmentsMessage.className = "form-message success";
+  } catch (error) {
+    appointmentsMessage.textContent = error.message;
+    appointmentsMessage.className = "form-message error";
+    button.disabled = false;
+    button.textContent = "Cancelar";
+  }
 }
 
 async function realizarAgendamento(event) {
@@ -285,5 +344,6 @@ async function iniciarAplicacao() {
 barbeiroSelect.addEventListener("change", atualizarHorariosDoFormulario);
 dataInput.addEventListener("change", atualizarHorariosDoFormulario);
 appointmentForm.addEventListener("submit", realizarAgendamento);
+appointmentsList.addEventListener("click", cancelarAgendamento);
 
 iniciarAplicacao();

@@ -417,6 +417,10 @@ select {
   gap: 16px;
 }
 
+#appointmentsMessage:not(:empty) {
+  margin-bottom: 16px;
+}
+
 .appointments article {
   padding: 20px;
 }
@@ -448,12 +452,22 @@ select {
 
 .appointments button {
   min-height: 38px;
+  padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: white;
   color: var(--accent);
   cursor: pointer;
   font-weight: 700;
+}
+
+.appointments button:hover {
+  border-color: var(--accent);
+}
+
+.appointments button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .admin-panel {

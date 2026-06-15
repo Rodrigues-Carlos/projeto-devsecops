@@ -82,6 +82,15 @@ app.MapPost("/agendamentos", async (
     return Results.Json(agendamento, statusCode: StatusCodes.Status201Created);
 });
 
+app.MapDelete("/agendamentos/{id:guid}", async (
+    Guid id,
+    AgendamentoStore store,
+    CancellationToken cancellationToken) =>
+{
+    var removido = await store.RemoverAsync(id, cancellationToken);
+    return removido ? Results.NoContent() : Results.NotFound();
+});
+
 app.Run();
 
 static Dictionary<string, string[]> Validar(CriarAgendamentoRequest request)
@@ -233,6 +242,28 @@ public sealed class AgendamentoStore
             }
 
             agendamentos.Add(agendamento);
+            await SalvarAsync(agendamentos, cancellationToken);
+            return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task<bool> RemoverAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            var agendamentos = await CarregarAsync(cancellationToken);
+            var quantidadeRemovida = agendamentos.RemoveAll(item => item.Id == id);
+
+            if (quantidadeRemovida == 0)
+            {
+                return false;
+            }
+
             await SalvarAsync(agendamentos, cancellationToken);
             return true;
         }
