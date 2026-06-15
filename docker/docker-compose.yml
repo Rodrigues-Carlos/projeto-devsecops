@@ -1,0 +1,85 @@
+# Ambiente de desenvolvimento local - Hora Marcada (arquitetura de microsservicos).
+# Uso (a partir da raiz do repositorio):
+#   docker compose -f docker/docker-compose.yml --env-file docker/.env up --build
+name: hora-marcada
+
+services:
+  # ----------------------- Bancos de dados -----------------------
+  users-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_AUTH_USER:-auth}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-authpass}
+      POSTGRES_DB: ${POSTGRES_AUTH_DB:-usersdb}
+    volumes:
+      - users-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER:-auth} -d ${POSTGRES_AUTH_DB:-usersdb}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  appointments-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_SCHED_USER:-sched}
+      POSTGRES_PASSWORD: ${POSTGRES_SCHED_PASSWORD:-schedpass}
+      POSTGRES_DB: ${POSTGRES_SCHED_DB:-appointmentsdb}
+    volumes:
+      - appointments-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SCHED_USER:-sched} -d ${POSTGRES_SCHED_DB:-appointmentsdb}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ----------------------- Microsservicos -----------------------
+  auth-service:
+    build:
+      context: ../services/auth-service
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_AUTH_USER:-auth}:${POSTGRES_AUTH_PASSWORD:-authpass}@users-db:5432/${POSTGRES_AUTH_DB:-usersdb}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@horamarcada.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@12345}
+      LOG_LEVEL: INFO
+    depends_on:
+      users-db:
+        condition: service_healthy
+
+  scheduling-service:
+    build:
+      context: ../services/scheduling-service
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_SCHED_USER:-sched}:${POSTGRES_SCHED_PASSWORD:-schedpass}@appointments-db:5432/${POSTGRES_SCHED_DB:-appointmentsdb}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      LOG_LEVEL: INFO
+    depends_on:
+      appointments-db:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ../services/api-gateway
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8000
+      SCHEDULING_SERVICE_URL: http://scheduling-service:8000
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"  # gateway exposto para testes diretos da API
+    depends_on:
+      - auth-service
+      - scheduling-service
+
+  web:
+    build:
+      context: ../apps/web
+    ports:
+      - "8080:8080"  # http://localhost:8080
+    depends_on:
+      - api-gateway
+
+volumes:
+  users-data:
+  appointments-data:

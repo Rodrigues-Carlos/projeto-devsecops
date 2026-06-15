@@ -1,13 +1,184 @@
-name: "Formativa"
+name: "CI/CD DevSecOps - Hora Marcada"
+
+# Pipeline completa do ciclo de desenvolvimento:
+#   Integracao Continua (CI)      -> lint + testes unitarios
+#   Seguranca (shift-left)        -> SAST (Bandit, Semgrep, CodeQL),
+#                                    SCA (Trivy, pip-audit, FOSSA), secret scanning
+#   Entrega Continua (CD)         -> build e publicacao das imagens no GHCR
+#   Implantacao Continua (CD)     -> kubectl/minikube no runner self-hosted
 
 on:
-  - push
-  - workflow_dispatch
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  tarefa:
-    name: Ola, mundo!
+  # ----------------------------- CI -----------------------------
+  lint-test:
+    name: CI - Lint e Testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Lint (ruff)
+        run: |
+          pip install ruff==0.8.4
+          ruff check services apps
+        continue-on-error: true
+      - name: Testes unitarios por servico
+        run: |
+          set -e
+          for svc in auth-service scheduling-service api-gateway; do
+            echo "::group::Testes $svc"
+            pip install -r "services/$svc/requirements.txt"
+            pip install pytest==8.3.4 httpx==0.28.1
+            ( cd "services/$svc" && python -m pytest -q )
+            echo "::endgroup::"
+          done
+
+  # -------------------------- SAST ------------------------------
+  sast:
+    name: Seguranca - SAST (Bandit + Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bandit (analise estatica Python)
+        run: |
+          pip install bandit==1.8.0
+          bandit -r services/auth-service/app services/scheduling-service/app services/api-gateway/app -ll
+        continue-on-error: true
+      - name: Semgrep (regras de seguranca)
+        run: |
+          pip install semgrep
+          semgrep --config p/python --config p/security-audit services apps
+        continue-on-error: true
+
+  codeql:
+    name: Seguranca - SAST (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+        continue-on-error: true
+
+  # --------------------------- SCA ------------------------------
+  sca:
+    name: Seguranca - SCA (Trivy + pip-audit + FOSSA)
+    runs-on: ubuntu-latest
+    env:
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pip-audit (CVEs em dependencias)
+        run: |
+          pip install pip-audit==2.7.3
+          for svc in auth-service scheduling-service api-gateway; do
+            echo "::group::pip-audit $svc"
+            pip-audit -r "services/$svc/requirements.txt" || true
+            echo "::endgroup::"
+          done
+        continue-on-error: true
+      - name: Trivy (filesystem - dependencias e misconfig)
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+          trivy fs --severity HIGH,CRITICAL --exit-code 0 --no-progress .
+        continue-on-error: true
+      - name: FOSSA (analise de licencas e composicao)
+        if: env.FOSSA_API_KEY != ''
+        uses: fossas/fossa-action@v1.4.0
+        with:
+          api-key: ${{ env.FOSSA_API_KEY }}
+
+  secret-scan:
+    name: Seguranca - Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  # ------------------ CD: Entrega Continua ----------------------
+  build-and-push:
+    name: CD - Build e Publicacao (GHCR)
+    needs: [lint-test, sast, sca, secret-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - name: auth-service
+            context: services/auth-service
+          - name: scheduling-service
+            context: services/scheduling-service
+          - name: api-gateway
+            context: services/api-gateway
+          - name: web
+            context: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prefixo da imagem (minusculo)
+        id: img
+        run: echo "prefix=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: |
+            ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:latest
+            ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:${{ github.sha }}
+      - name: Trivy (scan da imagem publicada)
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+          trivy image --severity HIGH,CRITICAL --exit-code 0 --no-progress ${{ steps.img.outputs.prefix }}/${{ matrix.name }}:${{ github.sha }}
+        continue-on-error: true
+
+  # ---------------- CD: Implantacao Continua --------------------
+  deploy:
+    name: CD - Implantacao continua (microk8s self-hosted)
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
-      - name: Echo
-        run: echo "Ola, mundo!"
+      - uses: actions/checkout@v4
+      - name: Implantar no microk8s
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/deploy-microk8s.sh

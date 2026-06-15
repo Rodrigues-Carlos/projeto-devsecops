@@ -1,0 +1,146 @@
+# Politicas de rede (microssegmentacao - defesa em profundidade).
+# Implementam o principio do menor privilegio na rede: cada componente so
+# aceita conexoes da origem estritamente necessaria.
+#
+# OBS.: a aplicacao das NetworkPolicies exige um CNI que as suporte
+# (ex.: minikube start --cni=calico). Com o CNI padrao elas ficam inertes.
+---
+# Nega, por padrao, todo trafego de entrada no namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: hora-marcada
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# Web aceita entrada apenas do controlador de Ingress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-from-ingress
+  namespace: hora-marcada
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Gateway aceita entrada do Ingress e da aplicacao web.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: hora-marcada
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app: web
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# Auth-service aceita entrada apenas do gateway.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-auth-from-gateway
+  namespace: hora-marcada
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# Scheduling-service aceita entrada apenas do gateway.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-scheduling-from-gateway
+  namespace: hora-marcada
+spec:
+  podSelector:
+    matchLabels:
+      app: scheduling-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# Banco de usuarios aceita entrada apenas do auth-service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-usersdb-from-auth
+  namespace: hora-marcada
+spec:
+  podSelector:
+    matchLabels:
+      app: users-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Banco de agendamentos aceita entrada apenas do scheduling-service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-appointmentsdb-from-scheduling
+  namespace: hora-marcada
+spec:
+  podSelector:
+    matchLabels:
+      app: appointments-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: scheduling-service
+      ports:
+        - protocol: TCP
+          port: 5432
