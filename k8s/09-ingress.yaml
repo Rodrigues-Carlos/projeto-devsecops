@@ -1,0 +1,30 @@
+# Ingress: ponto de entrada externo.
+#   /api -> API Gateway (intermedia o acesso as APIs internas)
+#   /    -> Aplicacao Web (frontend estatico)
+# Requer o controlador de Ingress (minikube addons enable ingress).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hora-marcada
+  namespace: hora-marcada
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80

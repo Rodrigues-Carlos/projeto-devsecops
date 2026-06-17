@@ -1,0 +1,8 @@
+# Configuracao do FOSSA (Software Composition Analysis - licencas e CVEs).
+# O FOSSA descobre automaticamente os arquivos requirements.txt de cada
+# microsservico. A analise roda na pipeline quando o segredo FOSSA_API_KEY
+# esta configurado no repositorio (Settings > Secrets and variables > Actions).
+version: 3
+project:
+  name: hora-marcada
+  team: DevSecOps

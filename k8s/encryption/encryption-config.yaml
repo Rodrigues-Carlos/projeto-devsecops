@@ -1,0 +1,17 @@
+# EncryptionConfiguration do kube-apiserver: criptografa os Secrets EM REPOUSO
+# no etcd usando AES-CBC. Sem isto, os Secrets ficam apenas em base64 (texto
+# claro) no etcd. (Mitiga STRIDE: Information Disclosure.)
+#
+# A chave abaixo e um PLACEHOLDER (32 bytes nulos). O script
+# enable-encryption.sh gera uma chave aleatoria real antes de aplicar.
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      - aescbc:
+          keys:
+            - name: key1
+              secret: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      - identity: {}

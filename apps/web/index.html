@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hora Marcada</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Hora Marcada">
+        <span class="brand-mark">HM</span>
+        <span>Hora Marcada</span>
+      </a>
+
+      <nav class="nav" aria-label="Navegacao principal">
+        <a href="#horarios">Horarios</a>
+        <a href="#agendar">Agendar</a>
+        <a href="#meus-agendamentos">Meus agendamentos</a>
+        <a href="#admin" data-role="admin" hidden>Admin</a>
+      </nav>
+
+      <div class="auth-area" id="authArea">
+        <a class="login-link" href="#login">Entrar</a>
+      </div>
+    </header>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <main>
+      <section id="inicio" class="hero">
+        <div class="hero-content">
+          <h1>Agendamento online para barbearias e pequenos estabelecimentos</h1>
+          <p class="hero-copy">
+            Clientes encontram horarios disponiveis, fazem reservas e acompanham seus agendamentos. Administradores gerenciam a agenda em um painel simples.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#agendar">Agendar horario</a>
+            <a class="button secondary" href="#horarios">Ver horarios</a>
+          </div>
+        </div>
+
+        <aside class="schedule-preview" aria-label="Previa de horarios">
+          <div class="preview-header">
+            <span>Agenda</span>
+            <strong>Hora Marcada</strong>
+          </div>
+          <div class="preview-scale">
+            <div><span>Nathan</span><strong>09:00 - 16:00</strong></div>
+            <div><span>Carlos</span><strong>09:00 - 16:00</strong></div>
+            <div><span>Leonardo</span><strong>09:00 - 16:00</strong></div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- RF03 - Visualizar horarios disponiveis -->
+      <section id="horarios" class="section">
+        <div class="section-heading">
+          <h2>Horarios disponiveis</h2>
+          <button class="button ghost" type="button" id="refreshSlots">Atualizar</button>
+        </div>
+        <div class="schedule-navigation" id="scheduleNavigation" hidden>
+          <button class="button ghost" type="button" id="previousDates">Anterior</button>
+          <div class="date-jump">
+            <label for="scheduleDateJump">Escolher data</label>
+            <input type="date" id="scheduleDateJump">
+          </div>
+          <strong id="visibleDateRange" aria-live="polite"></strong>
+          <button class="button ghost" type="button" id="nextDates">Proximos</button>
+        </div>
+        <div class="availability-board" id="availabilityBoard">
+          <p class="empty-state">Carregando horarios...</p>
+        </div>
+      </section>
+
+      <!-- RF04 - Realizar agendamento -->
+      <section id="agendar" class="section split">
+        <div>
+          <h2>Realizar agendamento</h2>
+          <p>Escolha o profissional, o servico e um horario disponivel. E necessario estar autenticado.</p>
+        </div>
+
+        <form class="form-panel" id="bookingForm">
+          <label>
+            Barbeiro
+            <select name="barbeiro" id="bookBarber"></select>
+          </label>
+          <label>
+            Servico
+            <select name="servico" id="bookService">
+              <option>Corte de cabelo</option>
+              <option>Barba</option>
+              <option>Corte + barba</option>
+            </select>
+          </label>
+          <label>
+            Horario
+            <select name="horario" id="bookSlot"></select>
+          </label>
+          <button class="button primary" type="submit">Reservar</button>
+        </form>
+      </section>
+
+      <!-- RF05 - Cancelar agendamento / lista do cliente -->
+      <section id="meus-agendamentos" class="section">
+        <div class="section-heading">
+          <h2>Meus agendamentos</h2>
+        </div>
+        <div class="appointments" id="myAppointments">
+          <p class="empty-state">Entre na sua conta para ver seus agendamentos.</p>
+        </div>
+      </section>
+
+      <!-- RF06/RF07/RF08/RF09/RF10 - Painel administrativo (somente admin) -->
+      <section id="admin" class="section" data-role="admin" hidden>
+        <div class="section-heading">
+          <h2>Painel administrativo</h2>
+        </div>
+
+        <div class="admin-panel">
+          <div><span class="metric" id="metricAppointments">0</span><p>Agendamentos ativos</p></div>
+          <div><span class="metric" id="metricSlots">0</span><p>Horarios livres</p></div>
+          <div><span class="metric" id="metricCancelled">0</span><p>Cancelados</p></div>
+        </div>
+
+        <div class="admin-grid">
+          <div class="card">
+            <h3>Horario de funcionamento</h3>
+            <form class="form-panel" id="workingHoursForm">
+              <label>Profissional<input type="text" id="workingBarber" placeholder="Nome do profissional" required minlength="2"></label>
+              <label>Abertura<input type="time" id="workingStart" value="09:00" required></label>
+              <label>Fechamento<input type="time" id="workingEnd" value="17:00" required></label>
+              <label>Intervalo
+                <select id="workingInterval">
+                  <option value="30">30 minutos</option>
+                  <option value="60" selected>60 minutos</option>
+                  <option value="90">90 minutos</option>
+                  <option value="120">120 minutos</option>
+                </select>
+              </label>
+              <button class="button primary" type="submit">Gerar agenda de 12 meses</button>
+            </form>
+            <div class="working-hours-list" id="workingHoursList"></div>
+          </div>
+
+          <div class="card">
+            <h3>Definir horario (RF07)</h3>
+            <form class="form-panel" id="slotForm">
+              <label>Barbeiro<input type="text" id="slotBarber" placeholder="Nome do barbeiro" required></label>
+              <label>Data<input type="date" id="slotDate" required></label>
+              <label>Horario<input type="time" id="slotTime" required></label>
+              <button class="button primary" type="submit">Criar horario</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <h3>Horarios cadastrados (RF08 / RF09)</h3>
+            <form class="admin-filters" id="slotFilters">
+              <label>Profissional<input type="search" id="slotFilterBarber" placeholder="Buscar profissional"></label>
+              <label>Data<input type="date" id="slotFilterDate"></label>
+              <label>Status
+                <select id="slotFilterStatus">
+                  <option value="todos">Todos</option>
+                  <option value="livre">Livres</option>
+                  <option value="ocupado">Ocupados</option>
+                </select>
+              </label>
+              <button class="button primary small" type="submit">Filtrar</button>
+              <button class="button ghost small" type="button" id="clearSlotFilters">Limpar</button>
+            </form>
+            <div class="admin-list" id="adminSlots"><p class="empty-state">Carregando...</p></div>
+            <div class="pagination">
+              <button class="button ghost small" type="button" id="previousSlotPage">Anterior</button>
+              <span id="slotPageInfo"></span>
+              <button class="button ghost small" type="button" id="nextSlotPage">Proxima</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Todos os agendamentos (RF10)</h3>
+          <form class="admin-filters appointments-filters" id="appointmentFilters">
+            <label>Cliente<input type="search" id="appointmentFilterEmail" placeholder="Buscar e-mail"></label>
+            <label>Status
+              <select id="appointmentFilterStatus">
+                <option value="todos">Todos</option>
+                <option value="pendente">Pendentes</option>
+                <option value="confirmado">Confirmados</option>
+                <option value="cancelado">Cancelados</option>
+              </select>
+            </label>
+            <button class="button primary small" type="submit">Filtrar</button>
+            <button class="button ghost small" type="button" id="clearAppointmentFilters">Limpar</button>
+          </form>
+          <div class="admin-list" id="adminAppointments"><p class="empty-state">Carregando...</p></div>
+          <div class="pagination">
+            <button class="button ghost small" type="button" id="previousAppointmentPage">Anterior</button>
+            <span id="appointmentPageInfo"></span>
+            <button class="button ghost small" type="button" id="nextAppointmentPage">Proxima</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RF01 / RF02 - Cadastro e autenticacao -->
+      <section id="login" class="section split">
+        <form class="form-panel" id="loginForm">
+          <h2>Entrar</h2>
+          <label>E-mail<input type="email" id="loginEmail" placeholder="cliente@email.com" required></label>
+          <label>Senha<input type="password" id="loginPassword" placeholder="Senha" required></label>
+          <button class="button primary" type="submit">Entrar</button>
+          <button class="recovery-link" type="button" id="showRecovery">Esqueci minha senha</button>
+        </form>
+
+        <form class="form-panel" id="registerForm">
+          <h2>Criar conta</h2>
+          <label>Nome<input type="text" id="regName" placeholder="Seu nome" required minlength="2"></label>
+          <label>E-mail<input type="email" id="regEmail" placeholder="cliente@email.com" required></label>
+          <label>WhatsApp<input type="tel" id="regPhone" placeholder="(41) 99999-9999" required minlength="10"></label>
+          <label>Senha<input type="password" id="regPassword" placeholder="Minimo 8 caracteres" required minlength="8"></label>
+          <button class="button secondary" type="submit">Cadastrar</button>
+        </form>
+      </section>
+
+      <section id="recuperar-conta" class="section split" hidden>
+        <div>
+          <h2>Recuperar conta</h2>
+          <p>Informe seu e-mail para gerar um token temporario. Por seguranca, a resposta sera a mesma mesmo que o endereco nao esteja cadastrado.</p>
+          <button class="button ghost" type="button" id="hideRecovery">Voltar ao login</button>
+        </div>
+
+        <div class="recovery-forms">
+          <form class="form-panel" id="recoveryRequestForm">
+            <h3>Solicitar recuperacao</h3>
+            <label>E-mail<input type="email" id="recoveryEmail" placeholder="cliente@email.com" required></label>
+            <button class="button primary" type="submit">Gerar token</button>
+            <p class="form-message" id="recoveryMessage" aria-live="polite"></p>
+          </form>
+
+          <form class="form-panel" id="passwordResetForm" hidden>
+            <h3>Definir nova senha</h3>
+            <label>Token<input type="text" id="recoveryToken" required></label>
+            <label>Nova senha<input type="password" id="newPassword" placeholder="Minimo 8 caracteres" required minlength="8"></label>
+            <button class="button secondary" type="submit">Redefinir senha</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Hora Marcada - Projeto DevSecOps (PUC-PR). Arquitetura de microsservicos com API Gateway.</p>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
