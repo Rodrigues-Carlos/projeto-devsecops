@@ -11,13 +11,25 @@ TAG="${1:-latest}"
 NS=hora-marcada
 SERVICES=(auth-service scheduling-service api-gateway web)
 
-# Usa microk8s sem sudo se o usuario estiver no grupo; senao cai para sudo.
-MK="microk8s"
-microk8s status >/dev/null 2>&1 || MK="sudo microk8s"
+# O runner do GitHub Actions roda via systemd e pode nao carregar /snap/bin no PATH.
+export PATH="$PATH:/snap/bin"
+MK="$(command -v microk8s || true)"
+if [[ -z "$MK" && -x /snap/bin/microk8s ]]; then
+  MK="/snap/bin/microk8s"
+fi
+if [[ -z "$MK" ]]; then
+  echo "ERRO: microk8s nao encontrado. Instale o MicroK8s ou adicione /snap/bin ao PATH." >&2
+  exit 1
+fi
+if ! "$MK" status >/dev/null 2>&1; then
+  echo "ERRO: usuario sem acesso ao MicroK8s ou MicroK8s indisponivel." >&2
+  echo "Execute na VM: sudo usermod -aG microk8s devsecops && newgrp microk8s" >&2
+  exit 1
+fi
 
 echo "==> 1/5 Habilitando addons do microk8s (dns, storage, ingress, metrics)"
-$MK enable dns hostpath-storage ingress metrics-server || true
-$MK status --wait-ready
+"$MK" enable dns hostpath-storage ingress metrics-server || true
+"$MK" status --wait-ready
 
 echo "==> 2/5 Construindo imagens Docker"
 docker build -t "hora-marcada/auth-service:$TAG"       "$ROOT/services/auth-service"
@@ -27,19 +39,19 @@ docker build -t "hora-marcada/web:$TAG"                "$ROOT/apps/web"
 
 echo "==> 3/5 Importando imagens no containerd do microk8s"
 for s in "${SERVICES[@]}"; do
-  docker save "hora-marcada/$s:$TAG" | $MK ctr image import -
+  docker save "hora-marcada/$s:$TAG" | "$MK" ctr image import -
 done
 
 echo "==> 4/5 Aplicando manifestos Kubernetes"
-$MK kubectl apply -f "$ROOT/k8s/"
+"$MK" kubectl apply -f "$ROOT/k8s/"
 
 echo "==> 5/5 Forcando rollout e aguardando disponibilidade"
-$MK kubectl -n "$NS" rollout restart deployment
+"$MK" kubectl -n "$NS" rollout restart deployment
 for d in "${SERVICES[@]}"; do
-  $MK kubectl -n "$NS" rollout status "deployment/$d" --timeout=240s
+  "$MK" kubectl -n "$NS" rollout status "deployment/$d" --timeout=240s
 done
-$MK kubectl -n "$NS" rollout status statefulset/users-db --timeout=240s
-$MK kubectl -n "$NS" rollout status statefulset/appointments-db --timeout=240s
+"$MK" kubectl -n "$NS" rollout status statefulset/users-db --timeout=240s
+"$MK" kubectl -n "$NS" rollout status statefulset/appointments-db --timeout=240s
 
 echo "==> Implantacao concluida:"
-$MK kubectl -n "$NS" get pods -o wide
+"$MK" kubectl -n "$NS" get pods -o wide
