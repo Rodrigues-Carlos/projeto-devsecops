@@ -5,7 +5,7 @@ name: "CI/CD DevSecOps - Hora Marcada"
 #   Seguranca (shift-left)        -> SAST (Bandit, Semgrep, CodeQL),
 #                                    SCA (Trivy, pip-audit, FOSSA), secret scanning
 #   Entrega Continua (CD)         -> build e publicacao das imagens no GHCR
-#   Implantacao Continua (CD)     -> kubectl/minikube no runner self-hosted
+#   Implantacao Continua (CD)     -> MicroK8s no runner self-hosted
 
 on:
   push:
@@ -18,6 +18,7 @@ permissions:
   contents: read
 
 jobs:
+  # Busca erros e problemas de organização do código
   # ----------------------------- CI -----------------------------
   lint-test:
     name: CI - Lint e Testes
@@ -42,7 +43,7 @@ jobs:
             ( cd "services/$svc" && python -m pytest -q )
             echo "::endgroup::"
           done
-
+  # Procura vul. no código fonte.
   # -------------------------- SAST ------------------------------
   sast:
     name: Seguranca - SAST (Bandit + Semgrep)
@@ -84,6 +85,7 @@ jobs:
           category: "/language:${{ matrix.language }}"
         continue-on-error: true
 
+  # Verifica bibliotecas vulneraveis (SCA) e segredos expostos (secret scanning)
   # --------------------------- SCA ------------------------------
   sca:
     name: Seguranca - SCA (Trivy + pip-audit + FOSSA)

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Implantacao continua no minikube: constroi as imagens, carrega no cluster e
-# aplica os manifestos. Usado tanto manualmente quanto pela pipeline (job de CD
-# no runner self-hosted).
+# Implantacao alternativa no minikube: constroi as imagens, carrega no cluster
+# e aplica os manifestos. O deploy automatico principal usa o MicroK8s.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TAG="${1:-latest}"
