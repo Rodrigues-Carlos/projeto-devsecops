@@ -180,5 +180,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Implantar no microk8s
         run: |
+          export PATH="$PATH:/snap/bin"
           chmod +x scripts/*.sh
           ./scripts/deploy-microk8s.sh
