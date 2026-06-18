@@ -22,9 +22,15 @@ if [[ -z "$MK" ]]; then
   exit 1
 fi
 if ! "$MK" status >/dev/null 2>&1; then
-  echo "ERRO: usuario sem acesso ao MicroK8s ou MicroK8s indisponivel." >&2
-  echo "Execute na VM: sudo usermod -aG microk8s devsecops && newgrp microk8s" >&2
-  exit 1
+  if sudo -n "$MK" status >/dev/null 2>&1; then
+    MK="sudo -n $MK"
+  else
+    echo "ERRO: usuario sem acesso ao MicroK8s ou MicroK8s indisponivel." >&2
+    echo "Na VM, permita sudo sem senha para o MicroK8s:" >&2
+    echo "  echo 'devsecops ALL=(root) NOPASSWD: /snap/bin/microk8s' | sudo tee /etc/sudoers.d/devsecops-microk8s" >&2
+    echo "  sudo chmod 440 /etc/sudoers.d/devsecops-microk8s" >&2
+    exit 1
+  fi
 fi
 
 echo "==> 1/5 Habilitando addons do microk8s (dns, storage, ingress, metrics)"
