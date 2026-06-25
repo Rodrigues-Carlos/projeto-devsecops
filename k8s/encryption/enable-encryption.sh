@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
 # Habilita criptografia de Kubernetes Secrets em repouso (etcd) no minikube.
-#
 # Estrategia:
 #   1. Gera uma chave AES-CBC aleatoria de 32 bytes.
 #   2. Copia a EncryptionConfiguration para dentro do no do minikube
