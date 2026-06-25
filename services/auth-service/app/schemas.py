@@ -28,6 +28,17 @@ class UserLogin(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class UserUpdate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: EmailStr
+    phone: str = Field(min_length=10, max_length=20)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        return UserRegister.validate_phone(value)
+
+
 class UserOut(BaseModel):
     id: int
     name: str
@@ -44,6 +55,12 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
     role: str
     name: str
+
+
+class ProfileUpdateOut(BaseModel):
+    user: UserOut
+    access_token: str
+    token_type: str = "bearer"
 
 
 class PasswordRecoveryRequest(BaseModel):

@@ -89,6 +89,11 @@ function renderAuth() {
     hello.className = "auth-user";
     hello.textContent = `Ola, ${store.name}`;
 
+    const profile = document.createElement("a");
+    profile.className = "button ghost";
+    profile.href = "#perfil";
+    profile.textContent = "Perfil";
+
     const out = document.createElement("button");
     out.className = "button ghost";
     out.type = "button";
@@ -96,10 +101,11 @@ function renderAuth() {
     out.addEventListener("click", () => {
       store.clear();
       renderAuth();
+      window.location.hash = "inicio";
       toast("Sessao encerrada.");
     });
 
-    area.append(hello, out);
+    area.append(hello, profile, out);
   } else {
     const link = document.createElement("a");
     link.className = "login-link";
@@ -113,6 +119,19 @@ function renderAuth() {
   document.querySelectorAll('[data-role="admin"]').forEach((el) => {
     el.hidden = !isAdmin;
   });
+  document.querySelectorAll('[data-auth="logged"]').forEach((el) => {
+    el.hidden = !store.isLogged;
+  });
+  $("#login").hidden = store.isLogged;
+  if (store.isLogged) {
+    $("#recuperar-conta").hidden = true;
+    loadProfile();
+    if (["#login", "#recuperar-conta"].includes(window.location.hash)) {
+      window.location.hash = "perfil";
+    }
+  } else {
+    $("#profileForm").reset();
+  }
 
   loadSlots();
   loadMyAppointments();
@@ -150,8 +169,40 @@ $("#loginForm").addEventListener("submit", async (e) => {
     });
     store.set(data.access_token, data.role, data.name);
     renderAuth();
+    window.location.hash = "inicio";
     toast(`Bem-vindo, ${data.name}!`, "success");
     e.target.reset();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
+async function loadProfile() {
+  try {
+    const profile = await api("/auth/me", { auth: true });
+    $("#profileName").value = profile.name;
+    $("#profileEmail").value = profile.email;
+    $("#profilePhone").value = formatPhone(profile.phone);
+  } catch (err) {
+    if (store.isLogged) toast(err.message, "error");
+  }
+}
+
+$("#profileForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const data = await api("/auth/me", {
+      method: "PATCH",
+      auth: true,
+      body: {
+        name: $("#profileName").value,
+        email: $("#profileEmail").value,
+        phone: $("#profilePhone").value,
+      },
+    });
+    store.set(data.access_token, data.user.role, data.user.name);
+    renderAuth();
+    toast("Perfil atualizado com sucesso.", "success");
   } catch (err) {
     toast(err.message, "error");
   }
