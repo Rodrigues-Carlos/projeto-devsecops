@@ -1,11 +1,69 @@
-# Guia de Implantacao (microk8s ou minikube + runner self-hosted)
+# Guia de Implantacao
 
-Este guia descreve a implantacao continua do **Hora Marcada** na VM Debian 12.
-A VM da disciplina ja vem com **Docker**, **microk8s** e o **runner self-hosted**
-do GitHub Actions. Use a Secao A (microk8s) para essa VM; a Secao B (minikube)
-e uma alternativa para outros ambientes.
+Este guia descreve tres caminhos de execucao:
 
-## A. Implantacao no microk8s (VM da disciplina)
+- Docker Compose local, recomendado para desenvolvimento rapido.
+- Kubernetes local com Docker Desktop ou Minikube, recomendado para validar os
+  manifestos `k8s/` na sua maquina.
+- MicroK8s com runner self-hosted, usado pela VM da disciplina e pela pipeline.
+
+## A. Desenvolvimento local com Docker Compose
+
+```bash
+cp docker/.env.example docker/.env
+docker compose -f docker/docker-compose.yml --env-file docker/.env up --build
+```
+
+Aplicacao web: <http://localhost:8080>
+
+API Gateway: <http://localhost:8000/health>
+
+Teste ponta-a-ponta:
+
+```bash
+./tests/smoke_test.sh http://localhost:8080
+```
+
+Para parar e remover os containers:
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file docker/.env down
+```
+
+## B. Kubernetes local com Docker Desktop
+
+Ative o Kubernetes no Docker Desktop e confirme que `kubectl` aponta para o
+contexto local:
+
+```bash
+kubectl config current-context
+kubectl cluster-info
+```
+
+Depois rode:
+
+```bash
+bash scripts/deploy-docker-k8s.sh
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+No Windows, sem WSL/Git Bash, rode pelo PowerShell:
+
+```powershell
+.\scripts\deploy-docker-k8s.ps1
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+Abra <http://localhost:8080>. O script constroi as imagens `hora-marcada/*:latest`
+no Docker local, aplica os manifestos de `k8s/` e aguarda os rollouts.
+
+Para limpar o ambiente Kubernetes local:
+
+```bash
+kubectl delete namespace hora-marcada
+```
+
+## C. Implantacao no MicroK8s (VM da disciplina)
 
 ```bash
 # 1) Permitir microk8s/docker sem sudo (uma vez; depois faca logout/login)
@@ -34,11 +92,11 @@ microk8s kubectl -n hora-marcada get pods,svc,deploy,statefulset,hpa
 microk8s kubectl -n hora-marcada get networkpolicies   # Calico (CNI padrao do microk8s) aplica as policies
 ```
 
-O **runner self-hosted** ja instalado executa o job `deploy` da pipeline
+O **runner self-hosted** executa o job `deploy` da pipeline
 (`scripts/deploy-microk8s.sh`) a cada push na branch `main`. Garanta que o
-usuario do runner esteja nos grupos `microk8s` e `docker`.
+usuario usado pelo servico do runner esteja nos grupos `microk8s` e `docker`.
 
-## B. Alternativa: minikube
+## D. Alternativa manual: Minikube
 
 ### 1. Pre-requisitos na VM Debian
 
@@ -55,7 +113,7 @@ curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-
 sudo install minikube-linux-amd64 /usr/local/bin/minikube
 ```
 
-## 2. Iniciar o cluster
+### 2. Iniciar o cluster
 
 ```bash
 # --cni=calico habilita a aplicacao das NetworkPolicies
@@ -67,7 +125,7 @@ minikube addons enable metrics-server   # necessario para o HPA
 > Em VM com 4 GB, `--memory=3500` deixa folga para o sistema. Se houver pressao de
 > memoria, reduza as replicas dos Deployments de 2 para 1.
 
-## 3. Criptografia de Secrets no etcd
+### 3. Criptografia de Secrets no etcd
 
 ```bash
 bash k8s/encryption/enable-encryption.sh
@@ -77,7 +135,7 @@ O script gera uma chave AES-CBC aleatoria, configura o kube-apiserver com
 `--encryption-provider-config` e re-grava os Secrets existentes. Verifique com o
 comando impresso ao final (deve aparecer o prefixo `k8s:enc:aescbc:v1:key1`).
 
-## 4. Implantacao manual (primeira vez ou sob demanda)
+### 4. Implantacao manual
 
 ```bash
 ./scripts/deploy-minikube.sh
@@ -93,7 +151,7 @@ kubectl -n hora-marcada get pods,svc,deploy,statefulset,hpa
 kubectl -n hora-marcada get networkpolicies
 ```
 
-## 5. Acessar a aplicacao
+### 5. Acessar a aplicacao
 
 ```bash
 # IP do ingress
@@ -111,7 +169,7 @@ Teste ponta-a-ponta:
 ./tests/smoke_test.sh "http://$(minikube ip)"
 ```
 
-## 6. Implantacao CONTINUA (runner self-hosted)
+## E. Implantacao continua com runner self-hosted
 
 Para que cada push na branch `main` dispare a implantacao automaticamente:
 
@@ -122,23 +180,26 @@ Para que cada push na branch `main` dispare a implantacao automaticamente:
    sudo ./svc.sh install
    sudo ./svc.sh start
    ```
-3. Garanta que o usuario do runner tem acesso a `docker`, `kubectl` e `minikube`.
+3. Garanta que o usuario do runner esteja nos grupos `docker` e `microk8s`.
 4. A partir dai, o job **deploy** da pipeline (`runs-on: self-hosted`) executa
-   `./scripts/deploy-minikube.sh` a cada merge em `main`.
+   `./scripts/deploy-microk8s.sh` a cada push ou merge em `main`.
 
-## 7. Fluxo completo de CI/CD
+## F. Fluxo completo de CI/CD
 
 ```
 push/PR  ->  CI (lint+testes)  ->  SAST + SCA + secret scan
-   merge em main  ->  build + push de imagens (GHCR)  ->  deploy (runner self-hosted -> minikube)
+   push em main  ->  build + push de imagens (GHCR)  ->  deploy (runner self-hosted -> MicroK8s)
 ```
 
 ## Solucao de problemas
 
 | Sintoma | Causa provavel | Acao |
 |---|---|---|
-| Pods `ImagePullBackOff` | imagem nao carregada no minikube | rode `./scripts/deploy-minikube.sh` (faz `minikube image load`) |
+| MicroK8s nao encontrado pelo runner | `/snap/bin` ausente do `PATH` | confirme a instalacao em `/snap/bin/microk8s`; o script adiciona esse caminho automaticamente |
+| Runner sem acesso ao MicroK8s | usuario fora do grupo `microk8s` | adicione o usuario do servico ao grupo e reinicie o runner |
+| Pods `ImagePullBackOff` no MicroK8s | imagem nao importada no containerd | rode `./scripts/deploy-microk8s.sh` novamente |
+| Pods `ImagePullBackOff` no Minikube alternativo | imagem nao carregada | rode `./scripts/deploy-minikube.sh` |
 | Pod do Postgres em `CrashLoopBackOff` | permissoes do volume | confirme `PGDATA=/var/lib/postgresql/data/pgdata` e `fsGroup: 999` |
-| NetworkPolicies sem efeito | CNI sem suporte | inicie com `minikube start --cni=calico` |
-| HPA sem metricas | metrics-server ausente | `minikube addons enable metrics-server` |
-| Ingress 404 | addon de ingress desabilitado | `minikube addons enable ingress` |
+| NetworkPolicies sem efeito | CNI sem suporte | confirme que o Calico esta ativo no cluster |
+| HPA sem metricas | metrics-server ausente | `microk8s enable metrics-server` |
+| Ingress 404 | addon de ingress desabilitado | `microk8s enable ingress` |

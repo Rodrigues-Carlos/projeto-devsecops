@@ -3,8 +3,10 @@
 # containerd do microk8s, aplicacao dos manifestos e rollout.
 # Usado manualmente e pela pipeline (job de CD no runner self-hosted).
 #
-# Pre-requisitos (uma vez): usuario nos grupos 'microk8s' e 'docker'.
-#   sudo usermod -a -G microk8s "$USER"; sudo usermod -a -G docker "$USER"; newgrp microk8s
+# Pre-requisitos (uma vez, fora da pipeline): usuario nos grupos 'microk8s' e
+# 'docker', addons habilitados e MicroK8s pronto.
+#   sudo usermod -a -G microk8s "$USER"; sudo usermod -a -G docker "$USER"
+#   microk8s enable dns hostpath-storage ingress metrics-server
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TAG="${1:-latest}"
@@ -22,19 +24,15 @@ if [[ -z "$MK" ]]; then
   exit 1
 fi
 if ! "$MK" status >/dev/null 2>&1; then
-  if sudo -n "$MK" status >/dev/null 2>&1; then
-    MK="sudo -n $MK"
-  else
-    echo "ERRO: usuario sem acesso ao MicroK8s ou MicroK8s indisponivel." >&2
-    echo "Na VM, permita sudo sem senha para o MicroK8s:" >&2
-    echo "  echo 'devsecops ALL=(root) NOPASSWD: /snap/bin/microk8s' | sudo tee /etc/sudoers.d/devsecops-microk8s" >&2
-    echo "  sudo chmod 440 /etc/sudoers.d/devsecops-microk8s" >&2
-    exit 1
-  fi
+  echo "ERRO: usuario sem acesso ao MicroK8s ou MicroK8s indisponivel." >&2
+  echo "Configure a VM uma vez e reinicie o runner:" >&2
+  echo "  sudo usermod -aG microk8s,docker devsecops" >&2
+  echo "  sudo chown -R devsecops ~/.kube" >&2
+  echo "  sudo systemctl restart actions.runner.*.service" >&2
+  exit 1
 fi
 
-echo "==> 1/5 Habilitando addons do microk8s (dns, storage, ingress, metrics)"
-"$MK" enable dns hostpath-storage ingress metrics-server || true
+echo "==> 1/5 Validando microk8s"
 "$MK" status --wait-ready
 
 echo "==> 2/5 Construindo imagens Docker"

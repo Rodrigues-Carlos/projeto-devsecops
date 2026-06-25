@@ -83,7 +83,7 @@
 - [x] Adicionar etapa de SCA (Trivy, pip-audit, FOSSA)
 - [x] Adicionar etapa de build das imagens Docker
 - [x] Adicionar etapa de entrega continua (GHCR)
-- [x] Adicionar etapa de implantacao continua (minikube)
+- [x] Adicionar etapa de implantacao continua (MicroK8s)
 
 ## 7. Kubernetes
 

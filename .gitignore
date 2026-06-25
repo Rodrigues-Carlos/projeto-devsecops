@@ -18,6 +18,10 @@ docker/.env
 # Bancos de dados locais / de teste
 *.db
 *.sqlite3
+services/scheduling-service/api.*.log
+services/scheduling-service/bin/
+services/scheduling-service/obj/
+services/scheduling-service/data/
 
 # Sistema operacional / editores
 .DS_Store

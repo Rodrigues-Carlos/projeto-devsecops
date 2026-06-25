@@ -89,6 +89,34 @@ Teste de integracao ponta-a-ponta:
 ./tests/smoke_test.sh http://localhost:8080
 ```
 
+## Executar localmente (Kubernetes com Docker)
+
+Para Docker Desktop com Kubernetes habilitado:
+
+```bash
+bash scripts/deploy-docker-k8s.sh
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+No Windows, sem WSL/Git Bash, use PowerShell:
+
+```powershell
+.\scripts\deploy-docker-k8s.ps1
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+Abra <http://localhost:8080>. As imagens sao construidas no Docker local e usadas
+pelo cluster Kubernetes local.
+
+Para Minikube com driver Docker:
+
+```bash
+minikube start --driver=docker --cni=calico --memory=3500 --cpus=4
+minikube addons enable ingress
+minikube addons enable metrics-server
+bash scripts/deploy-minikube.sh
+```
+
 ## Testes unitarios
 
 ```bash
@@ -97,17 +125,19 @@ for svc in auth-service scheduling-service api-gateway; do
 done
 ```
 
-## Implantacao no Kubernetes (minikube)
+## Implantacao no Kubernetes (MicroK8s)
 
 Guia completo em [docs/DEPLOY.md](docs/DEPLOY.md). Resumo:
 
 ```bash
-minikube start --cni=calico
-minikube addons enable ingress
-minikube addons enable metrics-server
-bash k8s/encryption/enable-encryption.sh   # criptografia de Secrets no etcd
-./scripts/deploy-minikube.sh               # build + load + kubectl apply
+sudo usermod -a -G microk8s "$USER"
+sudo usermod -a -G docker "$USER"
+bash scripts/deploy-microk8s.sh
+bash k8s/encryption/enable-encryption-microk8s.sh
 ```
+
+O MicroK8s e o ambiente principal da VM e do deploy automatico. O Minikube
+continua disponivel como alternativa para outros ambientes.
 
 ## Pipeline de CI/CD
 
@@ -118,7 +148,7 @@ Definida em [.github/workflows/pipeline.yaml](.github/workflows/pipeline.yaml):
 3. **SCA** — Trivy (filesystem e imagens), pip-audit e FOSSA.
 4. **Secret scanning** — Gitleaks.
 5. **Entrega continua** — build e publicacao das imagens no GHCR.
-6. **Implantacao continua** — `kubectl`/minikube em runner self-hosted.
+6. **Implantacao continua** — MicroK8s no runner self-hosted.
 
 Segredos necessarios no repositorio (Settings > Secrets and variables > Actions):
 

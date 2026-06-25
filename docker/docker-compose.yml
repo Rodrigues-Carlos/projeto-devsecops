@@ -35,6 +35,7 @@ services:
 
   # ----------------------- Microsservicos -----------------------
   auth-service:
+    image: hora-marcada/auth-service:latest
     build:
       context: ../services/auth-service
     environment:
@@ -50,6 +51,7 @@ services:
         condition: service_healthy
 
   scheduling-service:
+    image: hora-marcada/scheduling-service:latest
     build:
       context: ../services/scheduling-service
     environment:
@@ -61,6 +63,7 @@ services:
         condition: service_healthy
 
   api-gateway:
+    image: hora-marcada/api-gateway:latest
     build:
       context: ../services/api-gateway
     environment:
@@ -75,6 +78,7 @@ services:
       - scheduling-service
 
   web:
+    image: hora-marcada/web:latest
     build:
       context: ../apps/web
     ports:
