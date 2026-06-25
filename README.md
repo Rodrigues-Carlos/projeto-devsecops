@@ -89,6 +89,34 @@ Teste de integracao ponta-a-ponta:
 ./tests/smoke_test.sh http://localhost:8080
 ```
 
+## Executar localmente (Kubernetes com Docker)
+
+Para Docker Desktop com Kubernetes habilitado:
+
+```bash
+bash scripts/deploy-docker-k8s.sh
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+No Windows, sem WSL/Git Bash, use PowerShell:
+
+```powershell
+.\scripts\deploy-docker-k8s.ps1
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+Abra <http://localhost:8080>. As imagens sao construidas no Docker local e usadas
+pelo cluster Kubernetes local.
+
+Para Minikube com driver Docker:
+
+```bash
+minikube start --driver=docker --cni=calico --memory=3500 --cpus=4
+minikube addons enable ingress
+minikube addons enable metrics-server
+bash scripts/deploy-minikube.sh
+```
+
 ## Testes unitarios
 
 ```bash

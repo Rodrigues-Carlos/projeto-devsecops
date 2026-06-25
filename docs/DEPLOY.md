@@ -1,11 +1,69 @@
-# Guia de Implantacao (MicroK8s + runner self-hosted)
+# Guia de Implantacao
 
-Este guia descreve a implantacao continua do **Hora Marcada** na VM Debian 12.
-A VM da disciplina usa **Docker**, **MicroK8s** e um **runner self-hosted** do
-GitHub Actions. O MicroK8s e o ambiente principal da pipeline. O Minikube,
-descrito na Secao B, e apenas uma alternativa para outros ambientes.
+Este guia descreve tres caminhos de execucao:
 
-## A. Implantacao no MicroK8s (VM da disciplina)
+- Docker Compose local, recomendado para desenvolvimento rapido.
+- Kubernetes local com Docker Desktop ou Minikube, recomendado para validar os
+  manifestos `k8s/` na sua maquina.
+- MicroK8s com runner self-hosted, usado pela VM da disciplina e pela pipeline.
+
+## A. Desenvolvimento local com Docker Compose
+
+```bash
+cp docker/.env.example docker/.env
+docker compose -f docker/docker-compose.yml --env-file docker/.env up --build
+```
+
+Aplicacao web: <http://localhost:8080>
+
+API Gateway: <http://localhost:8000/health>
+
+Teste ponta-a-ponta:
+
+```bash
+./tests/smoke_test.sh http://localhost:8080
+```
+
+Para parar e remover os containers:
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file docker/.env down
+```
+
+## B. Kubernetes local com Docker Desktop
+
+Ative o Kubernetes no Docker Desktop e confirme que `kubectl` aponta para o
+contexto local:
+
+```bash
+kubectl config current-context
+kubectl cluster-info
+```
+
+Depois rode:
+
+```bash
+bash scripts/deploy-docker-k8s.sh
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+No Windows, sem WSL/Git Bash, rode pelo PowerShell:
+
+```powershell
+.\scripts\deploy-docker-k8s.ps1
+kubectl -n hora-marcada port-forward svc/web 8080:80
+```
+
+Abra <http://localhost:8080>. O script constroi as imagens `hora-marcada/*:latest`
+no Docker local, aplica os manifestos de `k8s/` e aguarda os rollouts.
+
+Para limpar o ambiente Kubernetes local:
+
+```bash
+kubectl delete namespace hora-marcada
+```
+
+## C. Implantacao no MicroK8s (VM da disciplina)
 
 ```bash
 # 1) Permitir microk8s/docker sem sudo (uma vez; depois faca logout/login)
@@ -38,7 +96,7 @@ O **runner self-hosted** executa o job `deploy` da pipeline
 (`scripts/deploy-microk8s.sh`) a cada push na branch `main`. Garanta que o
 usuario usado pelo servico do runner esteja nos grupos `microk8s` e `docker`.
 
-## B. Alternativa manual: Minikube
+## D. Alternativa manual: Minikube
 
 ### 1. Pre-requisitos na VM Debian
 
@@ -111,7 +169,7 @@ Teste ponta-a-ponta:
 ./tests/smoke_test.sh "http://$(minikube ip)"
 ```
 
-## C. Implantacao continua com runner self-hosted
+## E. Implantacao continua com runner self-hosted
 
 Para que cada push na branch `main` dispare a implantacao automaticamente:
 
@@ -126,7 +184,7 @@ Para que cada push na branch `main` dispare a implantacao automaticamente:
 4. A partir dai, o job **deploy** da pipeline (`runs-on: self-hosted`) executa
    `./scripts/deploy-microk8s.sh` a cada push ou merge em `main`.
 
-## D. Fluxo completo de CI/CD
+## F. Fluxo completo de CI/CD
 
 ```
 push/PR  ->  CI (lint+testes)  ->  SAST + SCA + secret scan
