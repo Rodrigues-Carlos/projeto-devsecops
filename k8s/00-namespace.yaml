@@ -1,7 +1,6 @@
 # Namespace com Pod Security Admission no perfil "restricted".
-# Esta e uma das politicas de seguranca de Pods exigidas: o admission controller
-# do Kubernetes rejeita qualquer Pod que rode como root, com privilegios, ou que
-# nao defina seccompProfile/capabilities adequados.
+# O admission controller do Kubernetes rejeita qualquer Pod que rode como root, com privilegios,
+# ou que nao defina seccompProfile/capabilities adequados.
 apiVersion: v1
 kind: Namespace
 metadata:

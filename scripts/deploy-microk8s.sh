@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-# Implantacao no microk8s (VM da disciplina): build das imagens, importacao no
+# build das imagens, importacao no
 # containerd do microk8s, aplicacao dos manifestos e rollout.
 # Usado manualmente e pela pipeline (job de CD no runner self-hosted).
-#
-# Pre-requisitos (uma vez, fora da pipeline): usuario nos grupos 'microk8s' e
-# 'docker', addons habilitados e MicroK8s pronto.
-#   sudo usermod -a -G microk8s "$USER"; sudo usermod -a -G docker "$USER"
-#   microk8s enable dns hostpath-storage ingress metrics-server
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TAG="${1:-latest}"

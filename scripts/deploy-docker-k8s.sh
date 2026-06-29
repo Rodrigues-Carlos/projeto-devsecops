@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Deploy local em Kubernetes usando as imagens do Docker da maquina.
-# Funciona bem com Docker Desktop Kubernetes. Para Minikube, use deploy-minikube.sh.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
