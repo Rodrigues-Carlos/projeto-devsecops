@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  # Busca erros e problemas de organização do código
+  # Busca erros e problemas de organizacao do codigo
   # ----------------------------- CI -----------------------------
   lint-test:
     name: CI - Lint e Testes
@@ -43,7 +43,8 @@ jobs:
             ( cd "services/$svc" && python -m pytest -q )
             echo "::endgroup::"
           done
-  # Procura vul. no código fonte.
+
+  # Procura vulnerabilidades no codigo fonte.
   # -------------------------- SAST ------------------------------
   sast:
     name: Seguranca - SAST (Bandit + Semgrep)
@@ -177,9 +178,19 @@ jobs:
     name: CD - Implantacao continua (microk8s self-hosted)
     needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Diagnostico do runner self-hosted
+        run: |
+          echo "Runner: $RUNNER_NAME"
+          echo "OS: $RUNNER_OS"
+          echo "Usuario: $(whoami)"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          docker ps
+          microk8s status --wait-ready
+          microk8s kubectl get nodes
       - name: Implantar no microk8s
         run: |
           export PATH="$PATH:/snap/bin"
