@@ -27,6 +27,38 @@ if ! "$MK" status >/dev/null 2>&1; then
   exit 1
 fi
 
+import_image() {
+  local image="$1"
+  local tar_file
+  tar_file="$(mktemp --suffix=.tar)"
+
+  docker save "$image" -o "$tar_file"
+
+  # Preferir a interface propria do MicroK8s quando disponivel. Em algumas
+  # versoes, "microk8s ctr image import" exige privilegios extras via sudo.
+  if "$MK" images import < "$tar_file" >/dev/null 2>&1; then
+    rm -f "$tar_file"
+    return 0
+  fi
+
+  if "$MK" ctr image import "$tar_file" >/dev/null 2>&1; then
+    rm -f "$tar_file"
+    return 0
+  fi
+
+  if sudo -n "$MK" ctr image import "$tar_file" >/dev/null 2>&1; then
+    rm -f "$tar_file"
+    return 0
+  fi
+
+  rm -f "$tar_file"
+  echo "ERRO: nao foi possivel importar a imagem $image no containerd do MicroK8s." >&2
+  echo "Se estiver rodando pelo GitHub Actions, permita sudo sem senha para o MicroK8s:" >&2
+  echo "  echo 'devsecops ALL=(root) NOPASSWD: /snap/bin/microk8s' | sudo tee /etc/sudoers.d/devsecops-microk8s" >&2
+  echo "  sudo chmod 440 /etc/sudoers.d/devsecops-microk8s" >&2
+  exit 1
+}
+
 echo "==> 1/5 Validando microk8s"
 "$MK" status --wait-ready
 
@@ -38,7 +70,7 @@ docker build -t "hora-marcada/web:$TAG"                "$ROOT/apps/web"
 
 echo "==> 3/5 Importando imagens no containerd do microk8s"
 for s in "${SERVICES[@]}"; do
-  docker save "hora-marcada/$s:$TAG" | "$MK" ctr image import -
+  import_image "hora-marcada/$s:$TAG"
 done
 
 echo "==> 4/5 Aplicando manifestos Kubernetes"
