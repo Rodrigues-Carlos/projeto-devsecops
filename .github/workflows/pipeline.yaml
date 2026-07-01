@@ -177,9 +177,19 @@ jobs:
     name: CD - Implantacao continua (microk8s self-hosted)
     needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Diagnostico do runner self-hosted
+        run: |
+          echo "Runner: $RUNNER_NAME"
+          echo "OS: $RUNNER_OS"
+          echo "Usuario: $(whoami)"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          docker ps
+          microk8s status --wait-ready
+          microk8s kubectl get nodes
       - name: Implantar no microk8s
         run: |
           export PATH="$PATH:/snap/bin"
