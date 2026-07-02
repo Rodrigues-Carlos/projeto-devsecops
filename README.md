@@ -1,4 +1,6 @@
 # Hora Marcada
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FRodrigues-Carlos%2Fprojeto-devsecops.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FRodrigues-Carlos%2Fprojeto-devsecops?ref=badge_shield)
+
 
 Sistema web de **agendamento online para barbearias e pequenos estabelecimentos**,
 desenvolvido como projeto da disciplina de **DevSecOps** (PUC-PR, Bacharelado em
@@ -180,3 +182,7 @@ tests/                    Estrategia de testes + smoke test
 docs/                     Arquitetura, modelo de ameacas, guia de deploy, documento SBC
 .github/workflows/        Pipeline de CI/CD
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FRodrigues-Carlos%2Fprojeto-devsecops.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FRodrigues-Carlos%2Fprojeto-devsecops?ref=badge_large)
